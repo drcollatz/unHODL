@@ -12,6 +12,8 @@ const BFX_API_SECRET = ''
 const ws_ticker = new WebSocket('wss://api.bitfinex.com/ws/');
 const ws_candles = new WebSocket('wss://api.bitfinex.com/ws/');
 
+var Fields = Object.freeze({TIME:0, OPEN: 1, CLOSE: 2, HIGH: 3, LOW: 4, VOLUME: 5});
+
 if (token !== '') {
   const bot = new TelegramBot(token, {
     polling: true
@@ -53,62 +55,49 @@ ws_candles.on('open', function open() {
   }));
 });
 
+function addData(data) {
+  if (marketData.length >= 200) { // Hold only 200 candles, pop the oldest data if 200 candles are reached
+    for (field in marketData) {
+      field.pop();
+    }
+  }
+  marketData.timestamp.push(data[Fields.TIME]);
+  var time = new Date(data[Fields.TIME]);
+  marketData.time.push(String(time.getDate() + ' - ' + time.getHours() + ':' + time.getMinutes()));
+  marketData.open.push(data[Fields.OPEN]);
+  marketData.close.push(data[Fields.CLOSE]);
+  marketData.high.push(data[Fields.HIGH]);
+  marketData.low.push(data[Fields.LOW]);
+  marketData.volume.push(data[Fields.VOLUME]);  
+}
+
 ws_candles.on('message', function incoming(rawdata) {
   const data = JSON.parse(rawdata);
   if (Array.isArray(data) && data[1] !== 'hb') {
     if (Array.isArray(data[1][0])) {
-      data[1].forEach(element => {
-        if ((marketData.timestamp).indexOf(element[0]) === -1) {
-          marketData.timestamp.push(element[0]);
-          var time = new Date(element[0]);
-          marketData.time.push(String(time.getDate() + ' - ' + time.getHours() + ':' + time.getMinutes()));
-          marketData.open.push(element[1]);
-          marketData.close.push(element[2]);
-          marketData.high.push(element[3]);
-          marketData.low.push(element[4]);
-          marketData.volume.push(element[5]);
+      candles = data[1].reverse();
+      candles.forEach(element => {
+        if ((marketData.timestamp).indexOf(element[Fields.TIME]) === -1) {
+          addData(element);
         }
       });
-      marketData.time = marketData.time.reverse();
-      marketData.open = marketData.open.reverse();
-      marketData.close = marketData.close.reverse();
-      marketData.high = marketData.high.reverse();
-      marketData.low = marketData.low.reverse();
-      marketData.volume = marketData.volume.reverse();
     } else {
-      var index = (marketData.timestamp).indexOf(data[1][0]);
+      candle_data = data[1];
+      var index = (marketData.timestamp).indexOf(candle_data[Fields.TIME]);
       if (index === -1) {
-        marketData.timestamp.push(data[1][0]);
-        var time = new Date(data[1][0]);
-        marketData.time.push(String(time.getDate() + ' - ' + time.getHours() + ':' + time.getMinutes()));
-        marketData.open.push(data[1][1]);
-        marketData.close.push(data[1][2]);
-        marketData.high.push(data[1][3]);
-        marketData.low.push(data[1][4]);
-        marketData.volume.push(data[1][5]);
-      } else {
-        marketData.timestamp[index] = data[1][0];
-        var time = new Date(data[1][0]);
-        marketData.time.push(String(time.getDate() + ' - ' + time.getHours() + ':' + time.getMinutes()));
-        marketData.open[index] = data[1][1];
-        marketData.close[index] = data[1][2];
-        marketData.high[index] = data[1][3];
-        marketData.low[index] = data[1][4];
-        marketData.volume[index] = data[1][5];
+        addData(candle_data);
+        var inputRSI = {
+          values: marketData.close,
+          period: 14
+        };
+  
+        var rsiResult = RSI.calculate(inputRSI);
+  
+        if (rsiResult[rsiResult.length - 1] >= 70 && bot) {
+          bot.sendMessage(chatID, "RSI: " + rsiResult[rsiResult.length - 1]);
+        }
+        console.log('RSI: ' + rsiResult[rsiResult.length - 1]);
       }
-
-      var inputRSI = {
-        values: marketData.close,
-        period: 14
-      };
-
-      var rsiResult = RSI.calculate(inputRSI);
-
-      if (rsiResult[rsiResult.length - 1] >= 70 && bot) {
-        bot.sendMessage(chatID, "RSI: " + rsiResult[rsiResult.length - 1]);
-      }
-      console.log('RSI: ' + rsiResult[rsiResult.length - 1]);
-
     }
   }
 });
