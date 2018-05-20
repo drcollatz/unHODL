@@ -1,0 +1,17 @@
+{
+  "name": "unHODL",
+  "version": "1.0.0",
+  "description": "This is a high frequency trading bot based on strong market trends, margin and low but frequent profits.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "DrCollatz, BEGCryptoCrew",
+  "license": "MIT",
+  "dependencies": {
+    "bitfinex-api-node": "^2.0.0-beta.1",
+    "node-telegram-bot-api": "^0.30.0",
+    "technicalindicators": "^1.1.11",
+    "ws": "^5.1.1"
+  }
+}
