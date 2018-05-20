@@ -5,4 +5,10 @@ This is a high frequency trading bot based on strong market trends, margin and l
 
 - install node.js
 - `npm install`
+- adapt config.js settings
 - `node app.js`
+
+# Docker (optional)
+
+- `docker build -t drcollatz/unhodl .`
+- `docker run drcollatz/unhodl`

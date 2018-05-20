@@ -4,7 +4,8 @@
   "description": "This is a high frequency trading bot based on strong market trends, margin and low but frequent profits.",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
   },
   "author": "DrCollatz, BEGCryptoCrew",
   "license": "MIT",

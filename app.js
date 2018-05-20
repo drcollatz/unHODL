@@ -3,22 +3,18 @@ const BFX = require('bitfinex-api-node')
 const RSI = require('technicalindicators').RSI;
 const TelegramBot = require('node-telegram-bot-api');
 
-const token = ''
-const chatID = ''
-
-const BFX_API_KEY = ''
-const BFX_API_SECRET = ''
+var config = require('./config');
 
 const ws_ticker = new WebSocket('wss://api.bitfinex.com/ws/');
 const ws_candles = new WebSocket('wss://api.bitfinex.com/ws/');
 
 var Fields = Object.freeze({TIME:0, OPEN: 1, CLOSE: 2, HIGH: 3, LOW: 4, VOLUME: 5});
 
-if (token !== '') {
-  const bot = new TelegramBot(token, {
+if (config.telegram.token !== '') {
+  const bot = new TelegramBot(config.telegram.token, {
     polling: true
   });
-  bot.sendMessage(chatID, "RoxxBot started...");
+  bot.sendMessage(config.telegram.chat, "unHODL Bot started...");
 }
 
 var marketData = {
@@ -104,10 +100,10 @@ ws_candles.on('message', function incoming(rawdata) {
 
 
 // Execute BFX API call
-/* if (BFX_API_KEY !== '') {
+/* if (config.bitfinex.key !== '') {
   const bfx = new BFX({
-    apiKey: BFX_API_KEY,
-    apiSecret: BFX_API_SECRET
+    apiKey: config.bitfinex.key,
+    apiSecret: config.bitfinex.secret
   })
   const rest = bfx.rest(2, {
     transform: true
