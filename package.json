@@ -1,5 +1,5 @@
 {
-  "name": "unHODL",
+  "name": "unhodl",
   "version": "1.0.0",
   "description": "This is a high frequency trading bot based on strong market trends, margin and low but frequent profits.",
   "main": "app.js",
@@ -14,5 +14,10 @@
     "node-telegram-bot-api": "^0.30.0",
     "technicalindicators": "^1.1.11",
     "ws": "^5.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^4.19.1",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.12.0"
   }
 }

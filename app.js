@@ -1,41 +1,89 @@
+process.env.NTBA_FIX_319 = 1; // needed for telegram issue
+
+const config = require('./config');
 const WebSocket = require('ws');
-const BFX = require('bitfinex-api-node')
-const RSI = require('technicalindicators').RSI;
+
+const { RSI } = require('technicalindicators');
 const TelegramBot = require('node-telegram-bot-api');
 
-var config = require('./config');
+const wsTicker = new WebSocket('wss://api.bitfinex.com/ws/');
+const wsCandles = new WebSocket('wss://api.bitfinex.com/ws/');
 
-const ws_ticker = new WebSocket('wss://api.bitfinex.com/ws/');
-const ws_candles = new WebSocket('wss://api.bitfinex.com/ws/');
+const bot = new TelegramBot(config.telegram.token, {
+  polling: true,
+});
+  // bot.sendMessage(config.telegram.chat, "unHODL Bot started...");
 
-var Fields = Object.freeze({TIME:0, OPEN: 1, CLOSE: 2, HIGH: 3, LOW: 4, VOLUME: 5});
 
-if (config.telegram.token !== '') {
-  const bot = new TelegramBot(config.telegram.token, {
-    polling: true
-  });
-  bot.sendMessage(config.telegram.chat, "unHODL Bot started...");
-}
+const Fields = Object.freeze({
+  TIME: 0,
+  OPEN: 1,
+  CLOSE: 2,
+  HIGH: 3,
+  LOW: 4,
+  VOLUME: 5,
+});
 
-var marketData = {
+const marketData = {
   timestamp: [],
   open: [],
   close: [],
   high: [],
   low: [],
   volume: [],
-  time: []
+  time: [],
 };
 
-ws_ticker.on('open', function open() {
-  ws_ticker.send(JSON.stringify({
+function addCandle(data) {
+  if (marketData.length >= 200) { // Hold only 200 candles, pop the oldest data
+    Object.keys(marketData).forEach((field) => {
+      field.pop();
+    });
+  }
+  marketData.timestamp.push(data[Fields.TIME]);
+  marketData.open.push(data[Fields.OPEN]);
+  marketData.close.push(data[Fields.CLOSE]);
+  marketData.high.push(data[Fields.HIGH]);
+  marketData.low.push(data[Fields.LOW]);
+  marketData.volume.push(data[Fields.VOLUME]);
+
+  // for debugging:
+  const time = new Date(data[Fields.TIME]);
+  marketData.time.push(String(`${time.getDate()} - ${time.getHours()}:${time.getMinutes()}`));
+}
+
+function updateCandle(data, index) {
+  marketData.timestamp[index] = data[Fields.TIME];
+  marketData.open[index] = data[Fields.OPEN];
+  marketData.close[index] = data[Fields.CLOSE];
+  marketData.high[index] = data[Fields.HIGH];
+  marketData.low[index] = data[Fields.LOW];
+  marketData.volume[index] = data[Fields.VOLUME];
+}
+
+function rsiCalculation() {
+  const inputRSI = {
+    values: marketData.close,
+    period: 14,
+  };
+  const rsiResultArray = RSI.calculate(inputRSI);
+  const rsiResultValue = rsiResultArray[rsiResultArray.length - 1];
+
+  if ((rsiResultValue >= 70 || rsiResultValue <= 30) && bot) {
+    bot.sendMessage(config.telegram.chat, `RSI: ' ${rsiResultValue}`);
+  }
+  console.log(`RSI: ${rsiResultValue}`);
+}
+
+wsTicker.on('open', () => {
+  wsTicker.send(JSON.stringify({
     event: 'subscribe',
     channel: 'ticker',
-    pair: 'EOSUSD'
+    pair: 'EOSUSD',
   }));
 });
 
-ws_ticker.on('message', function incoming(rawdata) {
+wsTicker.on('message', (rawdata) => {
   const data = JSON.parse(rawdata);
   const hb = data[1];
   if (hb !== 'hb' && hb) {
@@ -43,64 +91,42 @@ ws_ticker.on('message', function incoming(rawdata) {
   }
 });
 
-ws_candles.on('open', function open() {
-  ws_candles.send(JSON.stringify({
+wsCandles.on('open', () => {
+  wsCandles.send(JSON.stringify({
     event: 'subscribe',
     channel: 'candles',
-    key: 'trade:1m:tEOSUSD'
+    key: 'trade:1m:tEOSUSD',
   }));
 });
 
-function addData(data) {
-  if (marketData.length >= 200) { // Hold only 200 candles, pop the oldest data if 200 candles are reached
-    for (field in marketData) {
-      field.pop();
-    }
-  }
-  marketData.timestamp.push(data[Fields.TIME]);
-  var time = new Date(data[Fields.TIME]);
-  marketData.time.push(String(time.getDate() + ' - ' + time.getHours() + ':' + time.getMinutes()));
-  marketData.open.push(data[Fields.OPEN]);
-  marketData.close.push(data[Fields.CLOSE]);
-  marketData.high.push(data[Fields.HIGH]);
-  marketData.low.push(data[Fields.LOW]);
-  marketData.volume.push(data[Fields.VOLUME]);  
-}
-
-ws_candles.on('message', function incoming(rawdata) {
+wsCandles.on('message', (rawdata) => {
   const data = JSON.parse(rawdata);
+  let candleData = '';
   if (Array.isArray(data) && data[1] !== 'hb') {
-    if (Array.isArray(data[1][0])) {
-      candles = data[1].reverse();
-      candles.forEach(element => {
+    candleData = data[1];
+    if (Array.isArray(candleData[0])) {
+      candleData.reverse();
+      candleData.forEach((element) => {
         if ((marketData.timestamp).indexOf(element[Fields.TIME]) === -1) {
-          addData(element);
+          addCandle(element);
         }
       });
     } else {
-      candle_data = data[1];
-      var index = (marketData.timestamp).indexOf(candle_data[Fields.TIME]);
+      const index = (marketData.timestamp).indexOf(candleData[Fields.TIME]);
       if (index === -1) {
-        addData(candle_data);
-        var inputRSI = {
-          values: marketData.close,
-          period: 14
-        };
-  
-        var rsiResult = RSI.calculate(inputRSI);
-  
-        if (rsiResult[rsiResult.length - 1] >= 70 && bot) {
-          bot.sendMessage(chatID, "RSI: " + rsiResult[rsiResult.length - 1]);
-        }
-        console.log('RSI: ' + rsiResult[rsiResult.length - 1]);
+        addCandle(candleData);
+      } else {
+        updateCandle(candleData, index);
       }
+      rsiCalculation();
     }
   }
 });
 
-
 // Execute BFX API call
-/* if (config.bitfinex.key !== '') {
+
+/* const BFX = require('bitfinex-api-node');
+if (config.bitfinex.key !== '') {
   const bfx = new BFX({
     apiKey: config.bitfinex.key,
     apiSecret: config.bitfinex.secret
