@@ -9,9 +9,9 @@ const TelegramBot = require('node-telegram-bot-api');
 const wsTicker = new WebSocket('wss://api.bitfinex.com/ws/');
 const wsCandles = new WebSocket('wss://api.bitfinex.com/ws/');
 
-const bot = new TelegramBot(config.telegram.token, {
-  polling: true,
-});
+//const bot = new TelegramBot(config.telegram.token, {
+//  polling: true,
+//});
   // bot.sendMessage(config.telegram.chat, "unHODL Bot started...");
 
 
@@ -72,7 +72,7 @@ function rsiCalculation() {
   if ((rsiResultValue >= 70 || rsiResultValue <= 30) && bot) {
     bot.sendMessage(config.telegram.chat, `RSI: ' ${rsiResultValue}`);
   }
-  console.log(`RSI: ${rsiResultValue}`);
+  console.log(`${new Date().toLocaleTimeString()} - RSI : ${rsiResultValue}`);
 }
 
 wsTicker.on('open', () => {
@@ -87,7 +87,7 @@ wsTicker.on('message', (rawdata) => {
   const data = JSON.parse(rawdata);
   const hb = data[1];
   if (hb !== 'hb' && hb) {
-    console.log(`EOSUSD (Bitfinex): ${hb}`);
+    console.log(`${new Date().toLocaleTimeString()} - EOSUSD : ${hb}`);
   }
 });
 
@@ -115,10 +115,10 @@ wsCandles.on('message', (rawdata) => {
       const index = (marketData.timestamp).indexOf(candleData[Fields.TIME]);
       if (index === -1) {
         addCandle(candleData);
+        rsiCalculation();
       } else {
         updateCandle(candleData, index);
       }
-      rsiCalculation();
     }
   }
 });
