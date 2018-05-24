@@ -3,17 +3,30 @@ process.env.NTBA_FIX_319 = 1; // needed for telegram issue
 const config = require('./config');
 const WebSocket = require('ws');
 
+const BFX = require('bitfinex-api-node');
+
 const { RSI } = require('technicalindicators');
 const TelegramBot = require('node-telegram-bot-api');
 
-const wsTicker = new WebSocket('wss://api.bitfinex.com/ws/');
+const wsTickerEOS = new WebSocket('wss://api.bitfinex.com/ws/');
 const wsCandles = new WebSocket('wss://api.bitfinex.com/ws/');
 
-//const bot = new TelegramBot(config.telegram.token, {
-//  polling: true,
-//});
-  // bot.sendMessage(config.telegram.chat, "unHODL Bot started...");
+const bot = new TelegramBot(config.telegram.token, {
+  polling: true,
+});
 
+let telegramOnline = true;
+let rsiLocked = false;
+let currentPrice = '';
+let currentRSI = '';
+
+bot.on('polling_error', (error) => {
+  console.log(`Telegram Error - ${error.message}`);
+  telegramOnline = false;
+  bot.stopPolling();
+});
+
+if (telegramOnline) bot.sendMessage(config.telegram.chat, 'unHODL Bot started...');
 
 const Fields = Object.freeze({
   TIME: 0,
@@ -61,33 +74,55 @@ function updateCandle(data, index) {
   marketData.volume[index] = data[Fields.VOLUME];
 }
 
+function checkPrice() {
+  if (config.bitfinex.key !== '') {
+    const bfx = new BFX({
+      apiKey: config.bitfinex.key,
+      apiSecret: config.bitfinex.secret,
+    });
+    const rest = bfx.rest(2, {
+      transform: true,
+    });
+    rest.ticker('tEOSUSD', (err, res) => {
+      if (err) console.log(err);
+      console.log(`Bid:  ${res.bid}`);
+      console.log(`Ask:  ${res.ask}`);
+    });
+  }
+}
+
 function rsiCalculation() {
   const inputRSI = {
     values: marketData.close,
     period: 14,
   };
   const rsiResultArray = RSI.calculate(inputRSI);
-  const rsiResultValue = rsiResultArray[rsiResultArray.length - 1];
+  currentRSI = rsiResultArray[rsiResultArray.length - 1];
 
-  if ((rsiResultValue >= 70 || rsiResultValue <= 30) && bot) {
-    bot.sendMessage(config.telegram.chat, `RSI: ' ${rsiResultValue}`);
+  if ((currentRSI >= 70 || currentRSI <= 30) && !rsiLocked) {
+    checkPrice();
+    if (telegramOnline) {
+      bot.sendMessage(config.telegram.chat, `RSI: ' ${currentRSI} @ ${currentPrice}(+0.6%: ${(currentPrice * 1.006).toFixed(3)})(-0.6%: ${(currentPrice * 0.994).toFixed(3)})`);
+      setTimeout(() => { rsiLocked = false; }, 30000);
+    }
   }
-  console.log(`${new Date().toLocaleTimeString()} - RSI : ${rsiResultValue}`);
+  console.log(`${new Date().toLocaleTimeString()} - RSI : ${currentRSI} @ ${currentPrice}`);
 }
 
-wsTicker.on('open', () => {
-  wsTicker.send(JSON.stringify({
+wsTickerEOS.on('open', () => {
+  wsTickerEOS.send(JSON.stringify({
     event: 'subscribe',
     channel: 'ticker',
     pair: 'EOSUSD',
   }));
 });
 
-wsTicker.on('message', (rawdata) => {
+wsTickerEOS.on('message', (rawdata) => {
   const data = JSON.parse(rawdata);
   const hb = data[1];
   if (hb !== 'hb' && hb) {
-    console.log(`${new Date().toLocaleTimeString()} - EOSUSD : ${hb}`);
+    console.log(`${new Date().toLocaleTimeString()} - EOSUSD : ${hb} (+0.6%: ${(hb * 1.006).toFixed(3)}) (-0.6%: ${(hb * 0.994).toFixed(3)})`);
+    currentPrice = hb;
   }
 });
 
@@ -122,20 +157,3 @@ wsCandles.on('message', (rawdata) => {
     }
   }
 });
-
-// Execute BFX API call
-
-/* const BFX = require('bitfinex-api-node');
-if (config.bitfinex.key !== '') {
-  const bfx = new BFX({
-    apiKey: config.bitfinex.key,
-    apiSecret: config.bitfinex.secret
-  })
-  const rest = bfx.rest(2, {
-    transform: true
-  })
-  rest.positions((err, res) => {
-    if (err) console.log(err)
-    console.log('Postition: ' + res[0].pl)
-  });
-} */
