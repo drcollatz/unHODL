@@ -102,7 +102,7 @@ function rsiCalculation() {
   if ((currentRSI >= 70 || currentRSI <= 30) && !rsiLocked) {
     checkPrice();
     if (telegramOnline) {
-      bot.sendMessage(config.telegram.chat, `RSI: ' ${currentRSI} @ ${currentPrice}(+0.6%: ${(currentPrice * 1.006).toFixed(3)})(-0.6%: ${(currentPrice * 0.994).toFixed(3)})`);
+      bot.sendMessage(config.telegram.chat, `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice}(+0.6%: ${(currentPrice * 1.006).toFixed(3)})(-0.6%: ${(currentPrice * 0.994).toFixed(3)})`);
       setTimeout(() => { rsiLocked = false; }, 30000);
     }
   }
