@@ -1,7 +1,11 @@
 FROM node:alpine
 
+
 # Create app directory
 WORKDIR /usr/src/app
+
+RUN apk add -U tzdata && \
+    cp /usr/share/zoneinfo/Europe/Berlin /etc/localtime
 
 # Install app dependencies
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
