@@ -1,36 +1,69 @@
 process.env.NTBA_FIX_319 = 1; // needed for telegram issue
 
 const config = require('./config');
-const WebSocket = require('ws');
 
 const BFX = require('bitfinex-api-node');
-
 const { Order } = require('./node_modules/bitfinex-api-node/lib/models');
+
+const ws = require('ws');
+const ReconnectingWebSocket = require('reconnecting-websocket');
 
 const { RSI } = require('technicalindicators');
 const TelegramBot = require('node-telegram-bot-api');
 
-const wsTickerEOS = new WebSocket('wss://api.bitfinex.com/ws/');
-const wsCandles = new WebSocket('wss://api.bitfinex.com/ws/');
+const mongoose = require('mongoose');
+
+const wsTickerEOS = new ReconnectingWebSocket('wss://api.bitfinex.com/ws/', [], {
+  WebSocket: ws,
+});
+
+const wsCandles = new ReconnectingWebSocket('wss://api.bitfinex.com/ws/', [], {
+  WebSocket: ws,
+});
 
 const bot = new TelegramBot(config.telegram.token, {
   polling: true,
 });
 
-let telegramOnline = true;
+const Price = require('./models/price');
+
+const telegramOnline = true;
 let currentPrice = '';
 let currentRSI = '';
 let takeProfitOrderPrice = '';
 let stopLossOrderPrice = '';
 let positionOpen = false;
 
+const Fields = Object.freeze({
+  TIME: 0,
+  OPEN: 1,
+  CLOSE: 2,
+  HIGH: 3,
+  LOW: 4,
+  VOLUME: 5,
+});
+
+const marketData = {
+  timestamp: [],
+  open: [],
+  close: [],
+  high: [],
+  low: [],
+  volume: [],
+  time: [],
+};
+
+mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
+
 bot.on('polling_error', (error) => {
   console.log(`Telegram Error - ${error.message}`);
-  telegramOnline = false;
-  bot.stopPolling();
+  //  telegramOnline = false;
+  //  bot.stopPolling();
 });
 
 if (telegramOnline) bot.sendMessage(config.telegram.chat, 'unHODL Bot started...');
+
+// Order Execution //
 
 const bfx = new BFX({
   apiKey: config.bitfinex.key,
@@ -72,25 +105,6 @@ bfxWS.once('auth', () => {
 });
 
 // ws.open();
-
-const Fields = Object.freeze({
-  TIME: 0,
-  OPEN: 1,
-  CLOSE: 2,
-  HIGH: 3,
-  LOW: 4,
-  VOLUME: 5,
-});
-
-const marketData = {
-  timestamp: [],
-  open: [],
-  close: [],
-  high: [],
-  low: [],
-  volume: [],
-  time: [],
-};
 
 function addCandle(data) {
   if (marketData.length >= 200) { // Hold only 200 candles, pop the oldest data
@@ -151,7 +165,7 @@ function rsiCalculation() {
   console.log(`${new Date().toLocaleTimeString()} - RSI : ${currentRSI} @ ${currentPrice}`);
 }
 
-wsTickerEOS.on('open', () => {
+wsTickerEOS.addEventListener('open', () => {
   wsTickerEOS.send(JSON.stringify({
     event: 'subscribe',
     channel: 'ticker',
@@ -159,12 +173,23 @@ wsTickerEOS.on('open', () => {
   }));
 });
 
-wsTickerEOS.on('message', (rawdata) => {
-  const data = JSON.parse(rawdata);
+wsTickerEOS.addEventListener('message', (rawdata) => {
+  const data = JSON.parse(rawdata.data);
   const hb = data[1];
   if (hb !== 'hb' && hb) {
     console.log(`${new Date().toLocaleTimeString()} - EOSUSD : ${hb}`);
     currentPrice = hb;
+    const price = new Price({
+      _id: new mongoose.Types.ObjectId(),
+      pair: 'EOSUSD',
+      time: new Date().toLocaleTimeString(),
+      price: currentPrice,
+    });
+    price.save(function (err) {
+      if (err) return handleError(err);
+    });
+
+    // a<x==x<b testen
     if (positionOpen && !(currentPrice < Math.max(takeProfitOrderPrice, stopLossOrderPrice)
       && currentPrice > Math.min(takeProfitOrderPrice, stopLossOrderPrice))) {
       positionOpen = false;
@@ -176,7 +201,7 @@ wsTickerEOS.on('message', (rawdata) => {
   }
 });
 
-wsCandles.on('open', () => {
+wsCandles.addEventListener('open', () => {
   wsCandles.send(JSON.stringify({
     event: 'subscribe',
     channel: 'candles',
@@ -184,8 +209,12 @@ wsCandles.on('open', () => {
   }));
 });
 
-wsCandles.on('message', (rawdata) => {
-  const data = JSON.parse(rawdata);
+wsCandles.addEventListener('close', () => {
+  console.log('Connection lost, try to reconnect...')
+});
+
+wsCandles.addEventListener('message', (rawdata) => {
+  const data = JSON.parse(rawdata.data);
   let candleData = '';
   if (Array.isArray(data) && data[1] !== 'hb') {
     [, candleData] = data;
@@ -200,9 +229,11 @@ wsCandles.on('message', (rawdata) => {
       const index = (marketData.timestamp).indexOf(candleData[Fields.TIME]);
       if (index === -1) {
         addCandle(candleData);
-        rsiCalculation();
+      //  rsiCalculation();
+        console.log('New Candle Added...')
       } else {
         updateCandle(candleData, index);
+        rsiCalculation();
       }
     }
   }
