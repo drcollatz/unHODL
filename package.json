@@ -1,5 +1,5 @@
 {
-  "name": "unHODL",
+  "name": "unhodl",
   "version": "1.0.0",
   "description": "This is a high frequency trading bot based on strong market trends, margin and low but frequent profits.",
   "main": "app.js",
@@ -11,8 +11,19 @@
   "license": "MIT",
   "dependencies": {
     "bitfinex-api-node": "^2.0.0-beta.1",
+    "mongodb": "^3.1.0-beta4",
+    "mongoose": "^5.1.2",
     "node-telegram-bot-api": "^0.30.0",
+    "reconnecting-websocket": "^4.0.0-rc3",
     "technicalindicators": "^1.1.11",
     "ws": "^5.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^4.19.1",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.12.0"
+  },
+  "engines": {
+    "node": ">=8.11.2"
   }
 }
