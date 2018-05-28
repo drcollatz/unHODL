@@ -1,115 +1,272 @@
-const WebSocket = require('ws');
-const BFX = require('bitfinex-api-node')
-const RSI = require('technicalindicators').RSI;
+process.env.NTBA_FIX_319 = 1; // needed for telegram issue
+
+const config = require('./config');
+
+const BFX = require('bitfinex-api-node');
+const { Order } = require('./node_modules/bitfinex-api-node/lib/models');
+
+const ws = require('ws');
+const ReconnectingWebSocket = require('reconnecting-websocket');
+
+const { RSI } = require('technicalindicators');
 const TelegramBot = require('node-telegram-bot-api');
 
-var config = require('./config');
+const mongoose = require('mongoose');
 
-const ws_ticker = new WebSocket('wss://api.bitfinex.com/ws/');
-const ws_candles = new WebSocket('wss://api.bitfinex.com/ws/');
+const wsTickerEOS = new ReconnectingWebSocket('wss://api.bitfinex.com/ws/', [], {
+  WebSocket: ws,
+});
 
-var Fields = Object.freeze({TIME:0, OPEN: 1, CLOSE: 2, HIGH: 3, LOW: 4, VOLUME: 5});
+const wsCandles = new ReconnectingWebSocket('wss://api.bitfinex.com/ws/', [], {
+  WebSocket: ws,
+});
 
-if (config.telegram.token !== '') {
-  const bot = new TelegramBot(config.telegram.token, {
-    polling: true
-  });
-  bot.sendMessage(config.telegram.chat, "unHODL Bot started...");
-}
+const bot = new TelegramBot(config.telegram.token, {
+  polling: true,
+});
 
-var marketData = {
+const Price = require('./models/price');
+
+const telegramOnline = true;
+let currentPrice = '';
+let currentRSI = '';
+let takeProfitOrderPrice = '';
+let stopLossOrderPrice = '';
+let positionOpen = false;
+
+const Fields = Object.freeze({
+  TIME: 0,
+  OPEN: 1,
+  CLOSE: 2,
+  HIGH: 3,
+  LOW: 4,
+  VOLUME: 5,
+});
+
+const marketData = {
   timestamp: [],
   open: [],
   close: [],
   high: [],
   low: [],
   volume: [],
-  time: []
+  time: [],
 };
 
-ws_ticker.on('open', function open() {
-  ws_ticker.send(JSON.stringify({
-    event: 'subscribe',
-    channel: 'ticker',
-    pair: 'EOSUSD'
-  }));
+mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
+
+bot.on('polling_error', (error) => {
+  console.log(`Telegram Error - ${error.message}`);
+  //  telegramOnline = false;
+  //  bot.stopPolling();
 });
 
-ws_ticker.on('message', function incoming(rawdata) {
-  const data = JSON.parse(rawdata);
-  const hb = data[1];
-  if (hb !== 'hb' && hb) {
-    console.log(`EOSUSD (Bitfinex): ${hb}`);
-  }
+if (telegramOnline) bot.sendMessage(config.telegram.chat, 'unHODL Bot started...');
+
+// Order Execution //
+
+const bfx = new BFX({
+  apiKey: config.bitfinex.key,
+  apiSecret: config.bitfinex.secret,
 });
 
-ws_candles.on('open', function open() {
-  ws_candles.send(JSON.stringify({
-    event: 'subscribe',
-    channel: 'candles',
-    key: 'trade:1m:tEOSUSD'
-  }));
+const bfxWS = bfx.ws(2);
+
+bfxWS.on('error', (err) => { console.log(err); });
+bfxWS.on('open', bfxWS.auth.bind(bfxWS));
+
+bfxWS.once('auth', () => {
+  const o = new Order({
+    cid: Date.now(),
+    symbol: 'tETHUSD',
+    amount: -0.1,
+    price: 600,
+    type: Order.type.LIMIT,
+  }, bfxWS);
+
+  // Enable automatic updates
+  o.registerListeners();
+
+  o.on('update', () => {
+    console.log(`order updated: ${o.serialize()}`);
+  });
+
+  o.on('close', () => {
+    console.log(`order closed: ${o.status}`);
+    bfxWS.close();
+  });
+
+  o.submit().then(() => {
+    console.log(`submitted order ${o.id}`);
+  }).catch((err) => {
+    console.error(err);
+    bfxWS.close();
+  });
 });
 
-function addData(data) {
-  if (marketData.length >= 200) { // Hold only 200 candles, pop the oldest data if 200 candles are reached
-    for (field in marketData) {
+// ws.open();
+
+function addCandle(data) {
+  if (marketData.length >= 200) { // Hold only 200 candles, pop the oldest data
+    Object.keys(marketData).forEach((field) => {
       field.pop();
-    }
+    });
   }
   marketData.timestamp.push(data[Fields.TIME]);
-  var time = new Date(data[Fields.TIME]);
-  marketData.time.push(String(time.getDate() + ' - ' + time.getHours() + ':' + time.getMinutes()));
   marketData.open.push(data[Fields.OPEN]);
   marketData.close.push(data[Fields.CLOSE]);
   marketData.high.push(data[Fields.HIGH]);
   marketData.low.push(data[Fields.LOW]);
-  marketData.volume.push(data[Fields.VOLUME]);  
+  marketData.volume.push(data[Fields.VOLUME]);
+
+  // for debugging:
+  const time = new Date(data[Fields.TIME]);
+  marketData.time.push(String(`${time.getDate()} - ${time.getHours()}:${time.getMinutes()}`));
 }
 
-ws_candles.on('message', function incoming(rawdata) {
-  const data = JSON.parse(rawdata);
-  if (Array.isArray(data) && data[1] !== 'hb') {
-    if (Array.isArray(data[1][0])) {
-      candles = data[1].reverse();
-      candles.forEach(element => {
-        if ((marketData.timestamp).indexOf(element[Fields.TIME]) === -1) {
-          addData(element);
-        }
-      });
-    } else {
-      candle_data = data[1];
-      var index = (marketData.timestamp).indexOf(candle_data[Fields.TIME]);
-      if (index === -1) {
-        addData(candle_data);
-        var inputRSI = {
-          values: marketData.close,
-          period: 14
-        };
-  
-        var rsiResult = RSI.calculate(inputRSI);
-  
-        if (rsiResult[rsiResult.length - 1] >= 70 && bot) {
-          bot.sendMessage(chatID, "RSI: " + rsiResult[rsiResult.length - 1]);
-        }
-        console.log('RSI: ' + rsiResult[rsiResult.length - 1]);
+function updateCandle(data, index) {
+  marketData.timestamp[index] = data[Fields.TIME];
+  marketData.open[index] = data[Fields.OPEN];
+  marketData.close[index] = data[Fields.CLOSE];
+  marketData.high[index] = data[Fields.HIGH];
+  marketData.low[index] = data[Fields.LOW];
+  marketData.volume[index] = data[Fields.VOLUME];
+}
+
+function rsiCalculation() {
+  const inputRSI = {
+    values: marketData.close,
+    period: 14,
+  };
+  const rsiResultArray = RSI.calculate(inputRSI);
+  currentRSI = rsiResultArray[rsiResultArray.length - 1];
+
+  if (currentRSI >= 70 && !positionOpen) {
+    takeProfitOrderPrice = (currentPrice * 1.006).toFixed(3);
+    stopLossOrderPrice = (currentPrice * 0.99).toFixed(3);
+    positionOpen = true;
+    const msg = `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice}`;
+    console.log(msg);
+    console.log('Postition opened');
+    if (telegramOnline) {
+      bot.sendMessage(config.telegram.chat, msg);
+    }
+  } else if (currentRSI <= 30 && !positionOpen) {
+    takeProfitOrderPrice = (currentPrice * 0.994).toFixed(3);
+    stopLossOrderPrice = (currentPrice * 1.01).toFixed(3);
+    positionOpen = true;
+    const msg = `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice}`;
+    console.log(msg);
+    console.log('Postition opened');
+    if (telegramOnline) {
+      bot.sendMessage(config.telegram.chat, msg);
+    }
+  }
+  console.log(`${new Date().toLocaleTimeString()} - RSI : ${currentRSI} @ ${currentPrice}`);
+}
+
+wsTickerEOS.addEventListener('open', () => {
+  wsTickerEOS.send(JSON.stringify({
+    event: 'subscribe',
+    channel: 'ticker',
+    pair: 'EOSUSD',
+  }));
+});
+
+wsTickerEOS.addEventListener('message', (rawdata) => {
+  const data = JSON.parse(rawdata.data);
+  const hb = data[1];
+  if (hb !== 'hb' && hb) {
+    console.log(`${new Date().toLocaleTimeString()} - EOSUSD : ${hb}`);
+    currentPrice = hb;
+    const price = new Price({
+      _id: new mongoose.Types.ObjectId(),
+      pair: 'EOSUSD',
+      time: new Date().toLocaleTimeString(),
+      price: currentPrice,
+    });
+    price.save(function (err) {
+      if (err) return handleError(err);
+    });
+
+    // a<x==x<b testen
+    if (positionOpen && !(currentPrice < Math.max(takeProfitOrderPrice, stopLossOrderPrice)
+      && currentPrice > Math.min(takeProfitOrderPrice, stopLossOrderPrice))) {
+      positionOpen = false;
+      console.log(`Postition Closed @: ${currentPrice}`);
+      if (telegramOnline) {
+        bot.sendMessage(config.telegram.chat, `Postition Closed @: ${currentPrice}`);
       }
     }
   }
 });
 
+wsCandles.addEventListener('open', () => {
+  wsCandles.send(JSON.stringify({
+    event: 'subscribe',
+    channel: 'candles',
+    key: 'trade:1m:tEOSUSD',
+  }));
+});
 
-// Execute BFX API call
-/* if (config.bitfinex.key !== '') {
-  const bfx = new BFX({
-    apiKey: config.bitfinex.key,
-    apiSecret: config.bitfinex.secret
-  })
-  const rest = bfx.rest(2, {
-    transform: true
-  })
-  rest.positions((err, res) => {
-    if (err) console.log(err)
-    console.log('Postition: ' + res[0].pl)
-  });
-} */
+wsCandles.addEventListener('close', () => {
+  console.log('Connection lost, try to reconnect...')
+});
+
+wsCandles.addEventListener('message', (rawdata) => {
+  const data = JSON.parse(rawdata.data);
+  let candleData = '';
+  if (Array.isArray(data) && data[1] !== 'hb') {
+    [, candleData] = data;
+    if (Array.isArray(candleData[0])) {
+      candleData.reverse();
+      candleData.forEach((element) => {
+        if ((marketData.timestamp).indexOf(element[Fields.TIME]) === -1) {
+          addCandle(element);
+        }
+      });
+    } else {
+      const index = (marketData.timestamp).indexOf(candleData[Fields.TIME]);
+      if (index === -1) {
+        addCandle(candleData);
+      //  rsiCalculation();
+        console.log('New Candle Added...')
+      } else {
+        updateCandle(candleData, index);
+        rsiCalculation();
+      }
+    }
+  }
+});
+
+// Testing Area ---------------------------
+
+/*
+const bfxREST = bfx.rest(2, {
+  transform: true,
+});
+
+function checkPrice() {
+  if (config.bitfinex.key !== '') {
+    const rest = bfx.rest(2, {
+      transform: true,
+    });
+    rest.ticker('tEOSUSD', (err, res) => {
+      if (err) console.log(err);
+      console.log(`Bid:  ${res.bid}`);
+      console.log(`Ask:  ${res.ask}`);
+    });
+  }
+} * /
+
+/* const restExample = async () => {
+  const balances = await bfxREST.balances(); // actual balance fetch
+  const positions = await bfxREST.positions();
+  console.log(balances);
+  console.log(positions);
+};
+
+restExample(); */
+
+// Variable nach 30 sek setzen:
+// setTimeout(() => { rsiLocked = false; }, 30000);
