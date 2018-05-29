@@ -5,53 +5,25 @@ const config = require('./config');
 const BFX = require('bitfinex-api-node');
 const { Order } = require('./node_modules/bitfinex-api-node/lib/models');
 
-const ws = require('ws');
-const ReconnectingWebSocket = require('reconnecting-websocket');
-
 const { RSI } = require('technicalindicators');
 const TelegramBot = require('node-telegram-bot-api');
 
 const mongoose = require('mongoose');
 
-const wsTickerEOS = new ReconnectingWebSocket('wss://api.bitfinex.com/ws/', [], {
-  WebSocket: ws,
-});
-
-const wsCandles = new ReconnectingWebSocket('wss://api.bitfinex.com/ws/', [], {
-  WebSocket: ws,
-});
-
 const bot = new TelegramBot(config.telegram.token, {
   polling: true,
 });
 
+const CANDLE_KEY = 'trade:1m:tEOSUSD';
+
 const Price = require('./models/price');
 
-const telegramOnline = true;
+const telegramOnline = false;
 let currentPrice = '';
 let currentRSI = '';
 let takeProfitOrderPrice = '';
 let stopLossOrderPrice = '';
 let positionOpen = false;
-
-const Fields = Object.freeze({
-  TIME: 0,
-  OPEN: 1,
-  CLOSE: 2,
-  HIGH: 3,
-  LOW: 4,
-  VOLUME: 5,
-});
-
-const marketData = {
-  timestamp: [],
-  open: [],
-  close: [],
-  high: [],
-  low: [],
-  volume: [],
-  time: [],
-};
 
 mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
 
@@ -63,19 +35,51 @@ bot.on('polling_error', (error) => {
 
 if (telegramOnline) bot.sendMessage(config.telegram.chat, 'unHODL Bot started...');
 
-// Order Execution //
-
 const bfx = new BFX({
   apiKey: config.bitfinex.key,
   apiSecret: config.bitfinex.secret,
+  ws: {
+    autoReconnect: true,
+    seqAudit: true,
+    packetWDDelay: 10 * 1000,
+  },
 });
 
-const bfxWS = bfx.ws(2);
+const ws = bfx.ws(2, {
+  manageCandles: true, // enable candle dataset persistence/management
+  transform: true, // converts ws data arrays to Candle models (and others)
+});
 
-bfxWS.on('error', (err) => { console.log(err); });
-bfxWS.on('open', bfxWS.auth.bind(bfxWS));
+ws.on('error', (err) => { console.log(err); });
+ws.on('open', ws.auth.bind(ws));
+ws.on('close', () => console.log('closed'));
 
-bfxWS.once('auth', () => {
+ws.on('open', () => {
+  console.log('open');
+  ws.subscribeTicker('tEOSUSD');
+  ws.subscribeCandles(CANDLE_KEY);
+});
+
+ws.onTicker({ symbol: 'tEOSUSD' }, (ticker) => {
+  console.log('EOS/USD ticker: %j', ticker.lastPrice);
+});
+
+let candleArray = [];
+
+// 'candles' here is an array
+ws.onCandle({ key: CANDLE_KEY }, (candles) => {
+  console.log('CANDLE ist da...');
+  const candleClose = ws.getCandles(CANDLE_KEY).filter((val) => {
+    val.filter((innerVal, index) => {
+      if (index === 1) return innerVal;
+    });
+  });
+//  const candleClose = ws.getCandles(CANDLE_KEY).map(x => x[2]);
+});
+
+ws.open();
+
+/* bfxWS.once('auth', () => {
   const o = new Order({
     cid: Date.now(),
     symbol: 'tETHUSD',
@@ -102,36 +106,9 @@ bfxWS.once('auth', () => {
     console.error(err);
     bfxWS.close();
   });
-});
+}); */
 
 // ws.open();
-
-function addCandle(data) {
-  if (marketData.length >= 200) { // Hold only 200 candles, pop the oldest data
-    Object.keys(marketData).forEach((field) => {
-      field.pop();
-    });
-  }
-  marketData.timestamp.push(data[Fields.TIME]);
-  marketData.open.push(data[Fields.OPEN]);
-  marketData.close.push(data[Fields.CLOSE]);
-  marketData.high.push(data[Fields.HIGH]);
-  marketData.low.push(data[Fields.LOW]);
-  marketData.volume.push(data[Fields.VOLUME]);
-
-  // for debugging:
-  const time = new Date(data[Fields.TIME]);
-  marketData.time.push(String(`${time.getDate()} - ${time.getHours()}:${time.getMinutes()}`));
-}
-
-function updateCandle(data, index) {
-  marketData.timestamp[index] = data[Fields.TIME];
-  marketData.open[index] = data[Fields.OPEN];
-  marketData.close[index] = data[Fields.CLOSE];
-  marketData.high[index] = data[Fields.HIGH];
-  marketData.low[index] = data[Fields.LOW];
-  marketData.volume[index] = data[Fields.VOLUME];
-}
 
 function rsiCalculation() {
   const inputRSI = {
@@ -165,12 +142,21 @@ function rsiCalculation() {
   console.log(`${new Date().toLocaleTimeString()} - RSI : ${currentRSI} @ ${currentPrice}`);
 }
 
-wsTickerEOS.addEventListener('open', () => {
+/* wsTickerEOS.addEventListener('open', () => {
+  console.log('wsTicker Socket openend...');
   wsTickerEOS.send(JSON.stringify({
     event: 'subscribe',
     channel: 'ticker',
     pair: 'EOSUSD',
   }));
+});
+
+wsTickerEOS.addEventListener('close', () => {
+  console.log('Connection lost, try to reconnect...');
+});
+
+wsTickerEOS.addEventListener('error', () => {
+  console.log('Error occurs, try to reconnect...');
 });
 
 wsTickerEOS.addEventListener('message', (rawdata) => {
@@ -210,7 +196,7 @@ wsCandles.addEventListener('open', () => {
 });
 
 wsCandles.addEventListener('close', () => {
-  console.log('Connection lost, try to reconnect...')
+  console.log('Connection lost, try to reconnect...');
 });
 
 wsCandles.addEventListener('message', (rawdata) => {
@@ -237,7 +223,7 @@ wsCandles.addEventListener('message', (rawdata) => {
       }
     }
   }
-});
+}); */
 
 // Testing Area ---------------------------
 
