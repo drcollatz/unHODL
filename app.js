@@ -18,9 +18,11 @@ let positionOpen = false;
 
 mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
 
+
 const bot = new TelegramBot(config.telegram.token, {
-  polling: true,
+  polling: false,
 });
+
 
 const bfx = new BFX({
   apiKey: config.bitfinex.key,
@@ -44,15 +46,38 @@ const rest = bfx.rest(2, {
 if (telegramOnline) bot.sendMessage(config.telegram.chat, 'unHODL Bot started...');
 
 function checkClosing() {
-  if (positionOpen && !(currentPrice < Math.max(takeProfitOrderPrice, stopLossOrderPrice)
-    && currentPrice > Math.min(takeProfitOrderPrice, stopLossOrderPrice))) {
+  let success = false;
+  let closed = false;
+  if (positionOpen === 'long' && currentPrice >= takeProfitOrderPrice) {
     positionOpen = false;
-    console.log(`Postition Closed @: ${currentPrice}`);
+    success = true;
+    closed = true;
+  } else if (positionOpen === 'long' && currentPrice <= stopLossOrderPrice) {
+    positionOpen = false;
+    success = false;
+    closed = true;
+  } else if (positionOpen === 'short' && currentPrice <= takeProfitOrderPrice) {
+    positionOpen = false;
+    success = true;
+    closed = true;
+  } else if (positionOpen === 'short' && currentPrice >= stopLossOrderPrice) {
+    positionOpen = false;
+    success = false;
+    closed = true;
+  }
+  if (success && closed) {
+    console.log(`Postition closed @: ${takeProfitOrderPrice} (SUCCESS)`);
     if (telegramOnline) {
-      bot.sendMessage(config.telegram.chat, `Postition Closed @: ${currentPrice}`);
+      bot.sendMessage(config.telegram.chat, `Postition closed @: ${takeProfitOrderPrice} (SUCCESS)`);
+    }
+  } else if (!success && closed) {
+    console.log(`Postition closed @: ${stopLossOrderPrice} (FAILED)`);
+    if (telegramOnline) {
+      bot.sendMessage(config.telegram.chat, `Postition closed @: ${stopLossOrderPrice} (FAILED)`);
     }
   }
 }
+
 
 function rsiCalculation(closeData) {
   const inputRSI = {
@@ -66,7 +91,7 @@ function rsiCalculation(closeData) {
   if (currentRSI >= config.indicators.rsi.longValue && !positionOpen) {
     takeProfitOrderPrice = (currentPrice * (1 + (config.trading.takeProfitPerc / 100))).toFixed(3);
     stopLossOrderPrice = (currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
-    positionOpen = true;
+    positionOpen = 'long';
     const msg = `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
     console.log(msg);
     console.log('Postition opened');
@@ -77,7 +102,7 @@ function rsiCalculation(closeData) {
   } else if (currentRSI <= config.indicators.rsi.shortValue && !positionOpen) {
     takeProfitOrderPrice = (currentPrice * (1 - (config.trading.takeProfitPerc / 100))).toFixed(3);
     stopLossOrderPrice = (currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
-    positionOpen = true;
+    positionOpen = 'short';
     const msg = `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
     console.log(msg);
     console.log('Postition opened');
@@ -122,8 +147,8 @@ const checkBalances = async () => {
   for (let i = 0; i < balances.length; i += 1) {
     w = balances[i];
     if (w.type === 'trading' && w.currency === 'usd') {
-      console.log(`Wallet amount: ${w.amount}`);
-      console.log(`Wallet available: ${w.available}`);
+      console.log(`Wallet amount: ${(w.amount).toFixed(2)}`);
+      console.log(`Wallet available: ${(w.available).toFixed(2)}`);
     }
   }
 };
