@@ -1,8 +1,26 @@
 process.env.NTBA_FIX_319 = 1; // needed for telegram issue
 
 const config = require('./config');
-
 const BFX = require('bitfinex-api-node');
+
+const mongoose = require('mongoose');
+const Price = require('./models/price');
+const { RSI } = require('technicalindicators');
+const TelegramBot = require('node-telegram-bot-api');
+
+const CANDLE_KEY = 'trade:1m:tEOSUSD';
+const telegramOnline = true;
+let currentPrice = '';
+let currentRSI = '';
+let takeProfitOrderPrice = '';
+let stopLossOrderPrice = '';
+let positionOpen = false;
+
+mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
+
+const bot = new TelegramBot(config.telegram.token, {
+  polling: true,
+});
 
 const bfx = new BFX({
   apiKey: config.bitfinex.key,
@@ -14,33 +32,13 @@ const bfx = new BFX({
   },
 });
 
-const CANDLE_KEY = 'trade:1m:tEOSUSD';
-
-const { RSI } = require('technicalindicators');
-
-const TelegramBot = require('node-telegram-bot-api');
-
-const bot = new TelegramBot(config.telegram.token, {
-  polling: true,
+const ws = bfx.ws(2, {
+  manageCandles: true, // enable candle dataset persistence/management
+  transform: true, // converts ws data arrays to Candle models (and others)
 });
 
-const mongoose = require('mongoose');
-
-const Price = require('./models/price');
-
-const telegramOnline = true;
-let currentPrice = '';
-let currentRSI = '';
-let takeProfitOrderPrice = '';
-let stopLossOrderPrice = '';
-let positionOpen = false;
-
-mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
-
-bot.on('polling_error', (error) => {
-  console.log(`Telegram Error - ${error.message}`);
-  //  telegramOnline = false;
-  //  bot.stopPolling();
+const rest = bfx.rest(2, {
+  transform: true,
 });
 
 if (telegramOnline) bot.sendMessage(config.telegram.chat, 'unHODL Bot started...');
@@ -68,7 +66,7 @@ function rsiCalculation(closeData) {
     takeProfitOrderPrice = (currentPrice * 1.006).toFixed(3);
     stopLossOrderPrice = (currentPrice * 0.99).toFixed(3);
     positionOpen = true;
-    const msg = `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice}`;
+    const msg = `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
     console.log(msg);
     console.log('Postition opened');
     if (telegramOnline) {
@@ -78,7 +76,7 @@ function rsiCalculation(closeData) {
     takeProfitOrderPrice = (currentPrice * 0.994).toFixed(3);
     stopLossOrderPrice = (currentPrice * 1.01).toFixed(3);
     positionOpen = true;
-    const msg = `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice}`;
+    const msg = `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
     console.log(msg);
     console.log('Postition opened');
     if (telegramOnline) {
@@ -88,7 +86,7 @@ function rsiCalculation(closeData) {
   console.log(`${new Date().toLocaleTimeString()} - RSI : ${currentRSI} @ ${currentPrice}`);
 }
 
-function savePriceToDb() {
+const savePriceToDb = async () => {
   const price = new Price({
     _id: new mongoose.Types.ObjectId(),
     pair: 'EOSUSD',
@@ -96,17 +94,42 @@ function savePriceToDb() {
     price: currentPrice,
   });
 
-  price.save((err) => {
+  await price.save((err) => {
     if (err) {
       return console.log(err);
     }
     return true;
   });
-}
+};
 
-const ws = bfx.ws(2, {
-  manageCandles: true, // enable candle dataset persistence/management
-  transform: true, // converts ws data arrays to Candle models (and others)
+const checkPostitions = async () => {
+  const positions = await rest.positions();
+
+  if (positions.length === 0) {
+    return console.log('no open positions');
+  }
+  console.log(`Pos Amount: ${positions[0].amount}`);
+  console.log(`Pos P/L: ${(positions[0].pl).toFixed(2)} (${(positions[0].plPerc).toFixed(2)}%)`);
+  return true;
+};
+
+const checkBalances = async () => {
+  const balances = await rest.balances();
+  let w;
+
+  for (let i = 0; i < balances.length; i += 1) {
+    w = balances[i];
+    if (w.type === 'trading' && w.currency === 'usd') {
+      console.log(`Wallet amount: ${w.amount}`);
+      console.log(`Wallet available: ${w.available}`);
+    }
+  }
+};
+
+bot.on('polling_error', (error) => {
+  console.log(`Telegram Error - ${error.message}`);
+  //  telegramOnline = false;
+  //  bot.stopPolling();
 });
 
 ws.on('error', (err) => { console.log(err); });
@@ -124,6 +147,11 @@ ws.onCandle({ key: CANDLE_KEY }, (candles) => {
   rsiCalculation(candles.map(x => x.close).reverse());
   savePriceToDb();
 });
+
+setInterval(() => {
+  checkBalances();
+  checkPostitions();
+}, 10000);
 
 ws.open();
 
