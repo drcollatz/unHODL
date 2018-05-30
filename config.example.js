@@ -2,6 +2,9 @@ const config = {};
 
 config.telegram = {};
 config.bitfinex = {};
+config.indicators = {};
+config.indicators.rsi = {};
+config.trading = {};
 
 config.telegram.token = process.env.TELEGRAM_TOKEN || 'PUT API KEY HERE';
 config.telegram.chat = process.env.TELEGRAM_CHAT || 'PUT API KEY HERE';
