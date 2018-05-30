@@ -3,27 +3,28 @@ process.env.NTBA_FIX_319 = 1; // needed for telegram issue
 const config = require('./config');
 
 const BFX = require('bitfinex-api-node');
-const { Order } = require('./node_modules/bitfinex-api-node/lib/models');
 
-const ws = require('ws');
-const ReconnectingWebSocket = require('reconnecting-websocket');
+const bfx = new BFX({
+  apiKey: config.bitfinex.key,
+  apiSecret: config.bitfinex.secret,
+  ws: {
+    autoReconnect: true,
+    seqAudit: true,
+    packetWDDelay: 10 * 1000,
+  },
+});
+
+const CANDLE_KEY = 'trade:1m:tEOSUSD';
 
 const { RSI } = require('technicalindicators');
+
 const TelegramBot = require('node-telegram-bot-api');
-
-const mongoose = require('mongoose');
-
-const wsTickerEOS = new ReconnectingWebSocket('wss://api.bitfinex.com/ws/', [], {
-  WebSocket: ws,
-});
-
-const wsCandles = new ReconnectingWebSocket('wss://api.bitfinex.com/ws/', [], {
-  WebSocket: ws,
-});
 
 const bot = new TelegramBot(config.telegram.token, {
   polling: true,
 });
+
+const mongoose = require('mongoose');
 
 const Price = require('./models/price');
 
@@ -33,25 +34,6 @@ let currentRSI = '';
 let takeProfitOrderPrice = '';
 let stopLossOrderPrice = '';
 let positionOpen = false;
-
-const Fields = Object.freeze({
-  TIME: 0,
-  OPEN: 1,
-  CLOSE: 2,
-  HIGH: 3,
-  LOW: 4,
-  VOLUME: 5,
-});
-
-const marketData = {
-  timestamp: [],
-  open: [],
-  close: [],
-  high: [],
-  low: [],
-  volume: [],
-  time: [],
-};
 
 mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
 
@@ -63,79 +45,20 @@ bot.on('polling_error', (error) => {
 
 if (telegramOnline) bot.sendMessage(config.telegram.chat, 'unHODL Bot started...');
 
-// Order Execution //
-
-const bfx = new BFX({
-  apiKey: config.bitfinex.key,
-  apiSecret: config.bitfinex.secret,
-});
-
-const bfxWS = bfx.ws(2);
-
-bfxWS.on('error', (err) => { console.log(err); });
-bfxWS.on('open', bfxWS.auth.bind(bfxWS));
-
-bfxWS.once('auth', () => {
-  const o = new Order({
-    cid: Date.now(),
-    symbol: 'tETHUSD',
-    amount: -0.1,
-    price: 600,
-    type: Order.type.LIMIT,
-  }, bfxWS);
-
-  // Enable automatic updates
-  o.registerListeners();
-
-  o.on('update', () => {
-    console.log(`order updated: ${o.serialize()}`);
-  });
-
-  o.on('close', () => {
-    console.log(`order closed: ${o.status}`);
-    bfxWS.close();
-  });
-
-  o.submit().then(() => {
-    console.log(`submitted order ${o.id}`);
-  }).catch((err) => {
-    console.error(err);
-    bfxWS.close();
-  });
-});
-
-// ws.open();
-
-function addCandle(data) {
-  if (marketData.length >= 200) { // Hold only 200 candles, pop the oldest data
-    Object.keys(marketData).forEach((field) => {
-      field.pop();
-    });
+function checkClosing() {
+  if (positionOpen && !(currentPrice < Math.max(takeProfitOrderPrice, stopLossOrderPrice)
+    && currentPrice > Math.min(takeProfitOrderPrice, stopLossOrderPrice))) {
+    positionOpen = false;
+    console.log(`Postition Closed @: ${currentPrice}`);
+    if (telegramOnline) {
+      bot.sendMessage(config.telegram.chat, `Postition Closed @: ${currentPrice}`);
+    }
   }
-  marketData.timestamp.push(data[Fields.TIME]);
-  marketData.open.push(data[Fields.OPEN]);
-  marketData.close.push(data[Fields.CLOSE]);
-  marketData.high.push(data[Fields.HIGH]);
-  marketData.low.push(data[Fields.LOW]);
-  marketData.volume.push(data[Fields.VOLUME]);
-
-  // for debugging:
-  const time = new Date(data[Fields.TIME]);
-  marketData.time.push(String(`${time.getDate()} - ${time.getHours()}:${time.getMinutes()}`));
 }
 
-function updateCandle(data, index) {
-  marketData.timestamp[index] = data[Fields.TIME];
-  marketData.open[index] = data[Fields.OPEN];
-  marketData.close[index] = data[Fields.CLOSE];
-  marketData.high[index] = data[Fields.HIGH];
-  marketData.low[index] = data[Fields.LOW];
-  marketData.volume[index] = data[Fields.VOLUME];
-}
-
-function rsiCalculation() {
+function rsiCalculation(closeData) {
   const inputRSI = {
-    values: marketData.close,
+    values: closeData,
     period: 14,
   };
   const rsiResultArray = RSI.calculate(inputRSI);
@@ -165,79 +88,44 @@ function rsiCalculation() {
   console.log(`${new Date().toLocaleTimeString()} - RSI : ${currentRSI} @ ${currentPrice}`);
 }
 
-wsTickerEOS.addEventListener('open', () => {
-  wsTickerEOS.send(JSON.stringify({
-    event: 'subscribe',
-    channel: 'ticker',
+function savePriceToDb() {
+  const price = new Price({
+    _id: new mongoose.Types.ObjectId(),
     pair: 'EOSUSD',
-  }));
-});
+    time: new Date().toLocaleTimeString(),
+    price: currentPrice,
+  });
 
-wsTickerEOS.addEventListener('message', (rawdata) => {
-  const data = JSON.parse(rawdata.data);
-  const hb = data[1];
-  if (hb !== 'hb' && hb) {
-    console.log(`${new Date().toLocaleTimeString()} - EOSUSD : ${hb}`);
-    currentPrice = hb;
-    const price = new Price({
-      _id: new mongoose.Types.ObjectId(),
-      pair: 'EOSUSD',
-      time: new Date().toLocaleTimeString(),
-      price: currentPrice,
-    });
-    price.save(function (err) {
-      if (err) return handleError(err);
-    });
-
-    // a<x==x<b testen
-    if (positionOpen && !(currentPrice < Math.max(takeProfitOrderPrice, stopLossOrderPrice)
-      && currentPrice > Math.min(takeProfitOrderPrice, stopLossOrderPrice))) {
-      positionOpen = false;
-      console.log(`Postition Closed @: ${currentPrice}`);
-      if (telegramOnline) {
-        bot.sendMessage(config.telegram.chat, `Postition Closed @: ${currentPrice}`);
-      }
+  price.save((err) => {
+    if (err) {
+      return console.log(err);
     }
-  }
+    return true;
+  });
+}
+
+const ws = bfx.ws(2, {
+  manageCandles: true, // enable candle dataset persistence/management
+  transform: true, // converts ws data arrays to Candle models (and others)
 });
 
-wsCandles.addEventListener('open', () => {
-  wsCandles.send(JSON.stringify({
-    event: 'subscribe',
-    channel: 'candles',
-    key: 'trade:1m:tEOSUSD',
-  }));
+ws.on('error', (err) => { console.log(err); });
+ws.on('close', () => console.log('closed'));
+
+ws.on('open', () => {
+  ws.auth.bind(ws);
+  console.log('Bitfinex Websocket open...');
+  ws.subscribeCandles(CANDLE_KEY);
 });
 
-wsCandles.addEventListener('close', () => {
-  console.log('Connection lost, try to reconnect...')
+ws.onCandle({ key: CANDLE_KEY }, (candles) => {
+  currentPrice = candles[0].close; // current candle close is most accurate price vs. ticker
+  checkClosing();
+  rsiCalculation(candles.map(x => x.close).reverse());
+  savePriceToDb();
 });
 
-wsCandles.addEventListener('message', (rawdata) => {
-  const data = JSON.parse(rawdata.data);
-  let candleData = '';
-  if (Array.isArray(data) && data[1] !== 'hb') {
-    [, candleData] = data;
-    if (Array.isArray(candleData[0])) {
-      candleData.reverse();
-      candleData.forEach((element) => {
-        if ((marketData.timestamp).indexOf(element[Fields.TIME]) === -1) {
-          addCandle(element);
-        }
-      });
-    } else {
-      const index = (marketData.timestamp).indexOf(candleData[Fields.TIME]);
-      if (index === -1) {
-        addCandle(candleData);
-      //  rsiCalculation();
-        console.log('New Candle Added...')
-      } else {
-        updateCandle(candleData, index);
-        rsiCalculation();
-      }
-    }
-  }
-});
+ws.open();
 
 // Testing Area ---------------------------
 
@@ -257,16 +145,52 @@ function checkPrice() {
       console.log(`Ask:  ${res.ask}`);
     });
   }
-} * /
+}
 
-/* const restExample = async () => {
+  const restExample = async () => {
   const balances = await bfxREST.balances(); // actual balance fetch
   const positions = await bfxREST.positions();
   console.log(balances);
   console.log(positions);
 };
 
-restExample(); */
+restExample();
 
 // Variable nach 30 sek setzen:
 // setTimeout(() => { rsiLocked = false; }, 30000);
+
+// Execute Order
+
+const { Order } = require('./node_modules/bitfinex-api-node/lib/models');
+
+ bfxWS.once('auth', () => {
+  const o = new Order({
+    cid: Date.now(),
+    symbol: 'tETHUSD',
+    amount: -0.1,
+    price: 600,
+    type: Order.type.LIMIT,
+  }, bfxWS);
+
+  // Enable automatic updates
+  o.registerListeners();
+
+  o.on('update', () => {
+    console.log(`order updated: ${o.serialize()}`);
+  });
+
+  o.on('close', () => {
+    console.log(`order closed: ${o.status}`);
+    bfxWS.close();
+  });
+
+  o.submit().then(() => {
+    console.log(`submitted order ${o.id}`);
+  }).catch((err) => {
+    console.error(err);
+    bfxWS.close();
+  });
+});
+
+ ws.open();
+ */
