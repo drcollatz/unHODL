@@ -62,9 +62,10 @@ function rsiCalculation(closeData) {
   const rsiResultArray = RSI.calculate(inputRSI);
   currentRSI = rsiResultArray[rsiResultArray.length - 1];
 
-  if (currentRSI >= 70 && !positionOpen) {
-    takeProfitOrderPrice = (currentPrice * 1.006).toFixed(3);
-    stopLossOrderPrice = (currentPrice * 0.99).toFixed(3);
+  // open long position
+  if (currentRSI >= config.indicators.rsi.longValue && !positionOpen) {
+    takeProfitOrderPrice = (currentPrice * (1 + (config.trading.takeProfitPerc / 100))).toFixed(3);
+    stopLossOrderPrice = (currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
     positionOpen = true;
     const msg = `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
     console.log(msg);
@@ -72,9 +73,10 @@ function rsiCalculation(closeData) {
     if (telegramOnline) {
       bot.sendMessage(config.telegram.chat, msg);
     }
-  } else if (currentRSI <= 30 && !positionOpen) {
-    takeProfitOrderPrice = (currentPrice * 0.994).toFixed(3);
-    stopLossOrderPrice = (currentPrice * 1.01).toFixed(3);
+    // open short position  1-0.6
+  } else if (currentRSI <= config.indicators.rsi.shortValue && !positionOpen) {
+    takeProfitOrderPrice = (currentPrice * (1 - (config.trading.takeProfitPerc / 100))).toFixed(3);
+    stopLossOrderPrice = (currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
     positionOpen = true;
     const msg = `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
     console.log(msg);
