@@ -41,6 +41,11 @@ bot.onText(/\/price/, () => {
   bot.sendMessage(config.telegram.chat, `Current price: ${currentPrice}`);
 });
 
+bot.onText(/\/help/, () => {
+  bot.sendMessage(config.telegram.chat, 'Hello I\'m your unHODL bot.\nHere is the list of my commands:\n\n' +
+  '/balance to get balances\n/close to close open positions\n/pos to list open positions\n/price to get the current price');
+});
+
 const bfx = new BFX({
   apiKey: config.bitfinex.key,
   apiSecret: config.bitfinex.secret,
