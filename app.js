@@ -72,14 +72,8 @@ function checkClosing() {
     success = false;
     closed = true;
   }
-  if (success && closed) {
-    const msg = `${new Date().toLocaleTimeString()} - Postition closed @: ${takeProfitOrderPrice} (SUCCESS)`;
-    console.log(msg);
-    if (telegramOnline) {
-      bot.sendMessage(config.telegram.chat, msg);
-    }
-  } else if (!success && closed) {
-    const msg = `${new Date().toLocaleTimeString()} - Postition closed @: ${stopLossOrderPrice} (FAILED)`;
+  if (closed) {
+    const msg = `${new Date().toLocaleTimeString()} - Postition closed @: ${takeProfitOrderPrice} ${(success) ? '(SUCCESS)': '(FAILED)'}`;
     console.log(msg);
     if (telegramOnline) {
       bot.sendMessage(config.telegram.chat, msg);
@@ -150,8 +144,6 @@ const checkPostitions = async () => {
 
 const checkBalances = async () => {
   const balances = await rest.balances();
-  let w;
-
   balances.forEach(b => {
     if (b.type === 'trading' && b.currency === 'usd') {
       console.log(`${new Date().toLocaleTimeString()} - Wallet amount: ${b.amount}`);
