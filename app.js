@@ -9,6 +9,7 @@ const { RSI } = require('technicalindicators');
 const TelegramBot = require('node-telegram-bot-api');
 
 const CANDLE_KEY = 'trade:1m:tEOSUSD';
+const VERBOSE = false;
 const telegramOnline = true;
 const balance = {};
 const position = {};
@@ -17,6 +18,7 @@ let currentRSI = '';
 let takeProfitOrderPrice = '';
 let stopLossOrderPrice = '';
 let positionOpen = false;
+let stopLossBasePrice = '';
 let blockOpeningNewPosition = false;
 
 mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
@@ -67,6 +69,18 @@ const rest = bfx.rest(2, {
 
 if (telegramOnline) bot.sendMessage(config.telegram.chat, `${new Date().toLocaleTimeString()} - unHODL Bot started...`);
 
+function updateStopLoss() {
+  if (positionOpen === 'long' && currentPrice > stopLossBasePrice) {
+    stopLossOrderPrice = (currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
+    stopLossBasePrice = currentPrice;
+    console.log(`Stop Loss updated to: ${stopLossOrderPrice}`);
+  } else if ((positionOpen === 'short' && currentPrice < stopLossBasePrice)) {
+    stopLossOrderPrice = (currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
+    stopLossBasePrice = currentPrice;
+    console.log(`Stop Loss updated to: ${stopLossOrderPrice}`);
+  }
+}
+
 function checkClosing() {
   let success = false;
   let closed = false;
@@ -88,10 +102,12 @@ function checkClosing() {
       bot.sendMessage(config.telegram.chat, msg);
     }
   }
+  updateStopLoss();
 }
 
 function handleOpenPosition() {
   blockOpeningNewPosition = true;
+  stopLossBasePrice = currentPrice;
   const msg = `${new Date().toLocaleTimeString()} - RSI: ${currentRSI} @ ${currentPrice} \n(TP: ${takeProfitOrderPrice})\n(SL: ${stopLossOrderPrice})`;
   console.log(msg);
   console.log('Postition opened');
@@ -197,11 +213,12 @@ ws.onCandle({ key: CANDLE_KEY }, (candles) => {
   savePriceToDb();
 });
 
-setInterval(() => {
-  checkBalances();
-  checkPostitions();
-}, 10000);
-
+if (VERBOSE) {
+  setInterval(() => {
+    checkBalances();
+    checkPostitions();
+  }, 10000);
+}
 ws.open();
 
 // Testing Area ---------------------------
