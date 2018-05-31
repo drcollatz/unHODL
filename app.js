@@ -15,11 +15,20 @@ let currentRSI = '';
 let takeProfitOrderPrice = '';
 let stopLossOrderPrice = '';
 let positionOpen = false;
+let balance = {};
 
 mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
 
 const bot = new TelegramBot(config.telegram.token, {
-  polling: false,
+  polling: true,
+});
+
+bot.onText(/\/balance/, function onBalanceMsg(msg) {
+  bot.sendMessage(config.telegram.chat, `Available balance: ${balance.available}\nAvailable amount: ${balance.amount}`);
+});
+
+bot.onText(/\/close/, function onCloseMsg(msg) {
+  bot.sendMessage(config.telegram.chat, 'close received - implementation pending');
 });
 
 const bfx = new BFX({
@@ -143,13 +152,14 @@ const checkBalances = async () => {
   const balances = await rest.balances();
   let w;
 
-  for (let i = 0; i < balances.length; i += 1) {
-    w = balances[i];
-    if (w.type === 'trading' && w.currency === 'usd') {
-      console.log(`${new Date().toLocaleTimeString()} - Wallet amount: ${w.amount}`);
-      console.log(`${new Date().toLocaleTimeString()} - Wallet available: ${w.available}`);
+  balances.forEach(b => {
+    if (b.type === 'trading' && b.currency === 'usd') {
+      console.log(`${new Date().toLocaleTimeString()} - Wallet amount: ${b.amount}`);
+      console.log(`${new Date().toLocaleTimeString()} - Wallet available: ${b.available}`);
+      balance.available = b.available;
+      balance.amount = b.amount;
     }
-  }
+  });
 };
 
 bot.on('polling_error', (error) => {
