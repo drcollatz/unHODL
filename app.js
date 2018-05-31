@@ -10,12 +10,12 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const CANDLE_KEY = 'trade:1m:tEOSUSD';
 const telegramOnline = true;
+const balance = {};
 let currentPrice = '';
 let currentRSI = '';
 let takeProfitOrderPrice = '';
 let stopLossOrderPrice = '';
 let positionOpen = false;
-let balance = {};
 let blockOpeningNewPosition = false;
 
 mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
@@ -24,11 +24,11 @@ const bot = new TelegramBot(config.telegram.token, {
   polling: true,
 });
 
-bot.onText(/\/balance/, function onBalanceMsg(msg) {
+bot.onText(/\/balance/, () => {
   bot.sendMessage(config.telegram.chat, `Available balance: ${balance.available}\nAvailable amount: ${balance.amount}`);
 });
 
-bot.onText(/\/close/, function onCloseMsg(msg) {
+bot.onText(/\/close/, () => {
   bot.sendMessage(config.telegram.chat, 'close received - implementation pending');
 });
 
@@ -74,7 +74,7 @@ function checkClosing() {
     closed = true;
   }
   if (closed) {
-    const msg = `${new Date().toLocaleTimeString()} - Postition closed @: ${takeProfitOrderPrice} ${(success) ? '(SUCCESS)': '(FAILED)'}`;
+    const msg = `${new Date().toLocaleTimeString()} - Postition closed @: ${takeProfitOrderPrice} ${(success) ? '(SUCCESS)' : '(FAILED)'}`;
     console.log(msg);
     if (telegramOnline) {
       bot.sendMessage(config.telegram.chat, msg);
@@ -90,7 +90,7 @@ function handleOpenPosition() {
   if (telegramOnline) {
     bot.sendMessage(config.telegram.chat, msg);
   }
-};
+}
 
 function rsiCalculation(closeData) {
   const inputRSI = {
@@ -100,20 +100,23 @@ function rsiCalculation(closeData) {
   const rsiResultArray = RSI.calculate(inputRSI);
   currentRSI = rsiResultArray[rsiResultArray.length - 1];
 
-  if (blockOpeningNewPosition && 
+  if (blockOpeningNewPosition &&
     (currentRSI < config.indicators.rsi.longValue ||
-    currentRSI > config.indicators.rsi.shortValue)) {
-      blockOpeningNewPosition = false;
-    };
-  // open long position
-  if (currentRSI >= config.indicators.rsi.longValue && !positionOpen && !blockOpeningNewPosition) {
+      currentRSI > config.indicators.rsi.shortValue)) {
+    blockOpeningNewPosition = false;
+  }
+  if (currentRSI >= config.indicators.rsi.longValue &&
+    !positionOpen &&
+    !blockOpeningNewPosition) {
+    // open long position
     takeProfitOrderPrice = (currentPrice * (1 + (config.trading.takeProfitPerc / 100))).toFixed(3);
     stopLossOrderPrice = (currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
     positionOpen = 'long';
     handleOpenPosition();
-    }
+  } else if (currentRSI <= config.indicators.rsi.shortValue &&
+    !positionOpen &&
+    !blockOpeningNewPosition) {
     // open short position
-  else if (currentRSI <= config.indicators.rsi.shortValue && !positionOpen && !blockOpeningNewPosition) {
     takeProfitOrderPrice = (currentPrice * (1 - (config.trading.takeProfitPerc / 100))).toFixed(3);
     stopLossOrderPrice = (currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
     positionOpen = 'short';
@@ -151,7 +154,7 @@ const checkPostitions = async () => {
 
 const checkBalances = async () => {
   const balances = await rest.balances();
-  balances.forEach(b => {
+  balances.forEach((b) => {
     if (b.type === 'trading' && b.currency === 'usd') {
       console.log(`${new Date().toLocaleTimeString()} - Wallet amount: ${b.amount}`);
       console.log(`${new Date().toLocaleTimeString()} - Wallet available: ${b.available}`);
