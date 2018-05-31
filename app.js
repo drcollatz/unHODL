@@ -68,7 +68,9 @@ const rest = bfx.rest(2, {
 });
 
 if (telegramOnline) bot.sendMessage(config.telegram.chat, `${new Date().toLocaleTimeString()} - unHODL Bot started...`);
-
+/**
+ * Trailing of stop loss limit if profit increase
+ */
 function updateStopLoss() {
   if (positionOpen === 'long' && currentPrice > stopLossBasePrice) {
     stopLossOrderPrice = (currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
@@ -114,7 +116,7 @@ function handleOpenPosition() {
   stopLossBasePrice = currentPrice;
   const msg = `${new Date().toLocaleTimeString()} - RSI: ${currentRSI} @ ${currentPrice} \n(TP: ${takeProfitOrderPrice})\n(SL: ${stopLossOrderPrice})`;
   console.log(msg);
-  console.log('Postition opened');
+  console.log('Position opened');
   if (telegramOnline) {
     bot.sendMessage(config.telegram.chat, msg);
   }
@@ -178,7 +180,7 @@ const savePriceToDb = async () => {
  *
  * @returns
  */
-const checkPostitions = async () => {
+const checkPositions = async () => {
   const positions = await rest.positions();
 
   if (positions.length === 0) {
@@ -234,7 +236,7 @@ ws.onCandle({ key: CANDLE_KEY }, (candles) => {
 if (VERBOSE) {
   setInterval(() => {
     checkBalances();
-    checkPostitions();
+    checkPositions();
   }, 10000);
 }
 ws.open();
