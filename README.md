@@ -31,3 +31,12 @@ This is a high frequency trading bot based on strong market trends, margin and l
 ## Bitfinex API
 
 - tbd
+
+# Helpful
+
+### Installing git on QNAP
+
+- download QPKG package from here and install via app center: http://pkg.entware.net/binaries/other/Entware-ng_0.97.qpkg
+- opkg update
+- opkg install git
+- opkg install git-http

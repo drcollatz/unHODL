@@ -80,7 +80,9 @@ function updateStopLoss() {
     console.log(`Stop Loss updated to: ${stopLossOrderPrice}`);
   }
 }
-
+/**
+ * Checks if the position closing conditions are met.
+ */
 function checkClosing() {
   let success = false;
   let closed = false;
@@ -96,7 +98,7 @@ function checkClosing() {
     closed = true;
   }
   if (closed) {
-    const msg = `${new Date().toLocaleTimeString()} - Postition closed @: ${(success) ? `${takeProfitOrderPrice} (SUCCESS)` : `${stopLossOrderPrice} (FAILED)`}`;
+    const msg = `${new Date().toLocaleTimeString()} - Position closed @: ${(success) ? `${takeProfitOrderPrice} (SUCCESS)` : `${stopLossOrderPrice} (FAILED)`}`;
     console.log(msg);
     if (telegramOnline) {
       bot.sendMessage(config.telegram.chat, msg);
@@ -104,7 +106,9 @@ function checkClosing() {
   }
   updateStopLoss();
 }
-
+/**
+ * Opens a position.
+ */
 function handleOpenPosition() {
   blockOpeningNewPosition = true;
   stopLossBasePrice = currentPrice;
@@ -115,7 +119,10 @@ function handleOpenPosition() {
     bot.sendMessage(config.telegram.chat, msg);
   }
 }
-
+/**
+ * Calculates the RSI indicator and determines if a position should be opened
+ * @param {any} closeData
+ */
 function rsiCalculation(closeData) {
   const inputRSI = {
     values: closeData,
@@ -148,7 +155,9 @@ function rsiCalculation(closeData) {
   }
   console.log(`${new Date().toLocaleTimeString()} - RSI : ${currentRSI} @ ${currentPrice}`);
 }
-
+/**
+ * Saves the current price into database
+ */
 const savePriceToDb = async () => {
   const price = new Price({
     _id: new mongoose.Types.ObjectId(),
@@ -164,7 +173,11 @@ const savePriceToDb = async () => {
     return true;
   });
 };
-
+/**
+ * Fetches the positions data from exchange via REST
+ *
+ * @returns
+ */
 const checkPostitions = async () => {
   const positions = await rest.positions();
 
@@ -179,6 +192,11 @@ const checkPostitions = async () => {
   return true;
 };
 
+/**
+ * Fetches the balances from exchange via REST
+ *
+ * @returns
+ */
 const checkBalances = async () => {
   const balances = await rest.balances();
   balances.forEach((b) => {
