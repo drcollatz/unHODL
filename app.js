@@ -11,6 +11,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const CANDLE_KEY = 'trade:1m:tEOSUSD';
 const telegramOnline = true;
 const balance = {};
+const position = {};
 let currentPrice = '';
 let currentRSI = '';
 let takeProfitOrderPrice = '';
@@ -30,6 +31,14 @@ bot.onText(/\/balance/, () => {
 
 bot.onText(/\/close/, () => {
   bot.sendMessage(config.telegram.chat, 'close received - implementation pending');
+});
+
+bot.onText(/\/pos/, () => {
+  bot.sendMessage(config.telegram.chat, `Open position \nAmount: ${(position.amount).toFixed(2)} \nP/L: ${position.pl} (${position.plPerc} %)`);
+});
+
+bot.onText(/\/price/, () => {
+  bot.sendMessage(config.telegram.chat, `Current price: ${currentPrice}`);
 });
 
 const bfx = new BFX({
@@ -56,25 +65,19 @@ if (telegramOnline) bot.sendMessage(config.telegram.chat, `${new Date().toLocale
 function checkClosing() {
   let success = false;
   let closed = false;
-  if (positionOpen === 'long' && currentPrice >= takeProfitOrderPrice) {
+  if ((positionOpen === 'long' && currentPrice >= takeProfitOrderPrice) ||
+    (positionOpen === 'short' && currentPrice <= takeProfitOrderPrice)) {
     positionOpen = false;
     success = true;
     closed = true;
-  } else if (positionOpen === 'long' && currentPrice <= stopLossOrderPrice) {
-    positionOpen = false;
-    success = false;
-    closed = true;
-  } else if (positionOpen === 'short' && currentPrice <= takeProfitOrderPrice) {
-    positionOpen = false;
-    success = true;
-    closed = true;
-  } else if (positionOpen === 'short' && currentPrice >= stopLossOrderPrice) {
+  } else if ((positionOpen === 'long' && currentPrice <= stopLossOrderPrice) ||
+    (positionOpen === 'short' && currentPrice >= stopLossOrderPrice)) {
     positionOpen = false;
     success = false;
     closed = true;
   }
   if (closed) {
-    const msg = `${new Date().toLocaleTimeString()} - Postition closed @: ${takeProfitOrderPrice} ${(success) ? '(SUCCESS)' : '(FAILED)'}`;
+    const msg = `${new Date().toLocaleTimeString()} - Postition closed @: ${(success) ? `${takeProfitOrderPrice} (SUCCESS)` : `${stopLossOrderPrice} (FAILED)`}`;
     console.log(msg);
     if (telegramOnline) {
       bot.sendMessage(config.telegram.chat, msg);
@@ -84,7 +87,7 @@ function checkClosing() {
 
 function handleOpenPosition() {
   blockOpeningNewPosition = true;
-  const msg = `${new Date().toLocaleTimeString()} - RSI: ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
+  const msg = `${new Date().toLocaleTimeString()} - RSI: ${currentRSI} @ ${currentPrice} \n(TP: ${takeProfitOrderPrice})\n(SL: ${stopLossOrderPrice})`;
   console.log(msg);
   console.log('Postition opened');
   if (telegramOnline) {
@@ -101,7 +104,7 @@ function rsiCalculation(closeData) {
   currentRSI = rsiResultArray[rsiResultArray.length - 1];
 
   if (blockOpeningNewPosition &&
-    (currentRSI < config.indicators.rsi.longValue ||
+    (currentRSI < config.indicators.rsi.longValue &&
       currentRSI > config.indicators.rsi.shortValue)) {
     blockOpeningNewPosition = false;
   }
@@ -149,6 +152,9 @@ const checkPostitions = async () => {
   }
   console.log(`${new Date().toLocaleTimeString()} - Pos Amount: ${positions[0].amount}`);
   console.log(`${new Date().toLocaleTimeString()} - Pos P/L: ${(positions[0].pl).toFixed(2)} (${(positions[0].plPerc).toFixed(2)}%)`);
+  position.amount = positions[0].amount;
+  position.pl = (positions[0].pl).toFixed(2);
+  position.plPerc = (positions[0].plPerc).toFixed(2);
   return true;
 };
 
