@@ -18,11 +18,9 @@ let positionOpen = false;
 
 mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
 
-
 const bot = new TelegramBot(config.telegram.token, {
   polling: false,
 });
-
 
 const bfx = new BFX({
   apiKey: config.bitfinex.key,
@@ -43,7 +41,7 @@ const rest = bfx.rest(2, {
   transform: true,
 });
 
-if (telegramOnline) bot.sendMessage(config.telegram.chat, 'unHODL Bot started...');
+if (telegramOnline) bot.sendMessage(config.telegram.chat, `${new Date().toLocaleTimeString()} - unHODL Bot started...`);
 
 function checkClosing() {
   let success = false;
@@ -66,18 +64,19 @@ function checkClosing() {
     closed = true;
   }
   if (success && closed) {
-    console.log(`Postition closed @: ${takeProfitOrderPrice} (SUCCESS)`);
+    const msg = `${new Date().toLocaleTimeString()} - Postition closed @: ${takeProfitOrderPrice} (SUCCESS)`;
+    console.log(msg);
     if (telegramOnline) {
-      bot.sendMessage(config.telegram.chat, `Postition closed @: ${takeProfitOrderPrice} (SUCCESS)`);
+      bot.sendMessage(config.telegram.chat, msg);
     }
   } else if (!success && closed) {
-    console.log(`Postition closed @: ${stopLossOrderPrice} (FAILED)`);
+    const msg = `${new Date().toLocaleTimeString()} - Postition closed @: ${stopLossOrderPrice} (FAILED)`;
+    console.log(msg);
     if (telegramOnline) {
-      bot.sendMessage(config.telegram.chat, `Postition closed @: ${stopLossOrderPrice} (FAILED)`);
+      bot.sendMessage(config.telegram.chat, msg);
     }
   }
 }
-
 
 function rsiCalculation(closeData) {
   const inputRSI = {
@@ -92,18 +91,18 @@ function rsiCalculation(closeData) {
     takeProfitOrderPrice = (currentPrice * (1 + (config.trading.takeProfitPerc / 100))).toFixed(3);
     stopLossOrderPrice = (currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
     positionOpen = 'long';
-    const msg = `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
+    const msg = `${new Date().toLocaleTimeString()} - RSI: ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
     console.log(msg);
     console.log('Postition opened');
     if (telegramOnline) {
       bot.sendMessage(config.telegram.chat, msg);
     }
-    // open short position  1-0.6
+    // open short position
   } else if (currentRSI <= config.indicators.rsi.shortValue && !positionOpen) {
     takeProfitOrderPrice = (currentPrice * (1 - (config.trading.takeProfitPerc / 100))).toFixed(3);
     stopLossOrderPrice = (currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
     positionOpen = 'short';
-    const msg = `${new Date().toLocaleTimeString()} - RSI: ' ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
+    const msg = `${new Date().toLocaleTimeString()} - RSI: ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
     console.log(msg);
     console.log('Postition opened');
     if (telegramOnline) {
@@ -135,8 +134,8 @@ const checkPostitions = async () => {
   if (positions.length === 0) {
     return console.log('no open positions');
   }
-  console.log(`Pos Amount: ${positions[0].amount}`);
-  console.log(`Pos P/L: ${(positions[0].pl).toFixed(2)} (${(positions[0].plPerc).toFixed(2)}%)`);
+  console.log(`${new Date().toLocaleTimeString()} - Pos Amount: ${positions[0].amount}`);
+  console.log(`${new Date().toLocaleTimeString()} - Pos P/L: ${(positions[0].pl).toFixed(2)} (${(positions[0].plPerc).toFixed(2)}%)`);
   return true;
 };
 
@@ -147,8 +146,8 @@ const checkBalances = async () => {
   for (let i = 0; i < balances.length; i += 1) {
     w = balances[i];
     if (w.type === 'trading' && w.currency === 'usd') {
-      console.log(`Wallet amount: ${(w.amount).toFixed(2)}`);
-      console.log(`Wallet available: ${(w.available).toFixed(2)}`);
+      console.log(`${new Date().toLocaleTimeString()} - Wallet amount: ${w.amount}`);
+      console.log(`${new Date().toLocaleTimeString()} - Wallet available: ${w.available}`);
     }
   }
 };
@@ -201,18 +200,6 @@ function checkPrice() {
     });
   }
 }
-
-  const restExample = async () => {
-  const balances = await bfxREST.balances(); // actual balance fetch
-  const positions = await bfxREST.positions();
-  console.log(balances);
-  console.log(positions);
-};
-
-restExample();
-
-// Variable nach 30 sek setzen:
-// setTimeout(() => { rsiLocked = false; }, 30000);
 
 // Execute Order
 

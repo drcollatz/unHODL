@@ -15,3 +15,19 @@ This is a high frequency trading bot based on strong market trends, margin and l
 
 - `docker build -t drcollatz/unhodl .`
 - `docker run drcollatz/unhodl`
+
+# Configuration
+
+## Telegram Bot
+
+- talk to https://t.me/BotFather
+- ask BotFather for /newbot
+- create your bot
+- note your Token (in config.js) 
+- open and start your bot
+- talk to https://t.me/id_chatbot
+- note your ChatID (in config.js)
+
+## Bitfinex API
+
+- tbd
