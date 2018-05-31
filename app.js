@@ -16,6 +16,7 @@ let takeProfitOrderPrice = '';
 let stopLossOrderPrice = '';
 let positionOpen = false;
 let balance = {};
+let blockOpeningNewPosition = false;
 
 mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
 
@@ -81,6 +82,16 @@ function checkClosing() {
   }
 }
 
+function handleOpenPosition() {
+  blockOpeningNewPosition = true;
+  const msg = `${new Date().toLocaleTimeString()} - RSI: ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
+  console.log(msg);
+  console.log('Postition opened');
+  if (telegramOnline) {
+    bot.sendMessage(config.telegram.chat, msg);
+  }
+};
+
 function rsiCalculation(closeData) {
   const inputRSI = {
     values: closeData,
@@ -89,28 +100,24 @@ function rsiCalculation(closeData) {
   const rsiResultArray = RSI.calculate(inputRSI);
   currentRSI = rsiResultArray[rsiResultArray.length - 1];
 
+  if (blockOpeningNewPosition && 
+    (currentRSI < config.indicators.rsi.longValue ||
+    currentRSI > config.indicators.rsi.shortValue)) {
+      blockOpeningNewPosition = false;
+    };
   // open long position
-  if (currentRSI >= config.indicators.rsi.longValue && !positionOpen) {
+  if (currentRSI >= config.indicators.rsi.longValue && !positionOpen && !blockOpeningNewPosition) {
     takeProfitOrderPrice = (currentPrice * (1 + (config.trading.takeProfitPerc / 100))).toFixed(3);
     stopLossOrderPrice = (currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
     positionOpen = 'long';
-    const msg = `${new Date().toLocaleTimeString()} - RSI: ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
-    console.log(msg);
-    console.log('Postition opened');
-    if (telegramOnline) {
-      bot.sendMessage(config.telegram.chat, msg);
+    handleOpenPosition();
     }
     // open short position
-  } else if (currentRSI <= config.indicators.rsi.shortValue && !positionOpen) {
+  else if (currentRSI <= config.indicators.rsi.shortValue && !positionOpen && !blockOpeningNewPosition) {
     takeProfitOrderPrice = (currentPrice * (1 - (config.trading.takeProfitPerc / 100))).toFixed(3);
     stopLossOrderPrice = (currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
     positionOpen = 'short';
-    const msg = `${new Date().toLocaleTimeString()} - RSI: ${currentRSI} @ ${currentPrice} (TP: ${takeProfitOrderPrice})(SL: ${stopLossOrderPrice})`;
-    console.log(msg);
-    console.log('Postition opened');
-    if (telegramOnline) {
-      bot.sendMessage(config.telegram.chat, msg);
-    }
+    handleOpenPosition();
   }
   console.log(`${new Date().toLocaleTimeString()} - RSI : ${currentRSI} @ ${currentPrice}`);
 }
