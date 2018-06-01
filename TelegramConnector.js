@@ -41,6 +41,11 @@ module.exports = {
         bot.onText(/\/alive/, () => {
             bot.sendMessage(config.telegram.chat,`Yes sir!`);
         });
+
+        bot.onText(/\/help/, () => {
+            bot.sendMessage(config.telegram.chat, 'Hello I\'m your unHODL bot.\nHere is the list of my commands:\n\n' +
+            '/balance to get balances\n/close to close open positions\n/pos to list open positions\n/price to get the current price');
+          });
         
         bot.on('polling_error', (error) => {
             console.log(`Telegram Error - ${error.message}`);

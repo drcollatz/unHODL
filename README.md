@@ -23,6 +23,7 @@ This is a high frequency trading bot based on strong market trends, margin and l
 - talk to https://t.me/BotFather
 - ask BotFather for /newbot
 - create your bot
+- create config.js from config.example.js
 - note your Token (in config.js) 
 - open and start your bot
 - talk to https://t.me/id_chatbot
@@ -31,3 +32,12 @@ This is a high frequency trading bot based on strong market trends, margin and l
 ## Bitfinex API
 
 - tbd
+
+# Helpful
+
+### Installing git on QNAP
+
+- download QPKG package from here and install via app center: http://pkg.entware.net/binaries/other/Entware-ng_0.97.qpkg
+- opkg update
+- opkg install git
+- opkg install git-http

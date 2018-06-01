@@ -10,6 +10,9 @@ var TelegramConnector = require('./TelegramConnector.js');
 var LiveTradingPair = require('./Exchange.js');
 
 
+const VERBOSE = false;
+
+
 const balance = {};
 const position = {};
 
@@ -19,6 +22,7 @@ let currentRSI = '';
 let takeProfitOrderPrice = '';
 let stopLossOrderPrice = '';
 let positionOpen = false;
+let stopLossBasePrice = '';
 let blockOpeningNewPosition = false;
 
 
@@ -78,7 +82,23 @@ pairEosUsd.subscribe(observerCallback);
 var pairBtcUsd = new LiveTradingPair(CANDLE_KEY_BTC_USD);
 pairBtcUsd.subscribe(observerCallbackBTC);
 
-
+/**
+ * Trailing of stop loss limit if profit increase
+ */
+function updateStopLoss() {
+  if (positionOpen === 'long' && currentPrice > stopLossBasePrice) {
+    stopLossOrderPrice = (currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
+    stopLossBasePrice = currentPrice;
+    console.log(`Stop Loss updated to: ${stopLossOrderPrice}`);
+  } else if ((positionOpen === 'short' && currentPrice < stopLossBasePrice)) {
+    stopLossOrderPrice = (currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
+    stopLossBasePrice = currentPrice;
+    console.log(`Stop Loss updated to: ${stopLossOrderPrice}`);
+  }
+}
+/**
+ * Checks if the position closing conditions are met.
+ */
 function checkClosing() {
   let success = false;
   let closed = false;
@@ -94,16 +114,20 @@ function checkClosing() {
     closed = true;
   }
   if (closed) {
-    const msg = `${new Date().toLocaleTimeString()} - Postition closed @: ${(success) ? `${takeProfitOrderPrice} (SUCCESS)` : `${stopLossOrderPrice} (FAILED)`}`;
+    const msg = `${new Date().toLocaleTimeString()} - Position closed @: ${(success) ? `${takeProfitOrderPrice} (SUCCESS)` : `${stopLossOrderPrice} (FAILED)`}`;
     console.log(msg);
     if (telegramOnline) {
       TelegramConnector.sendToChat(msg);
     }
   }
+  updateStopLoss();
 }
-
+/**
+ * Opens a position.
+ */
 function handleOpenPosition() {
   blockOpeningNewPosition = true;
+  stopLossBasePrice = currentPrice;
   const msg = `${new Date().toLocaleTimeString()} - RSI: ${currentRSI} @ ${currentPrice} \n(TP: ${takeProfitOrderPrice})\n(SL: ${stopLossOrderPrice})`;
   console.log(msg);
   console.log('Postition opened');
@@ -127,8 +151,12 @@ const savePriceToDb = async () => {
     return true;
   });
 };
-
-const checkPostitions = async () => {
+/**
+ * Fetches the positions data from exchange via REST
+ *
+ * @returns
+ */
+const checkPositions = async () => {
   const positions = await rest.positions();
 
   if (positions.length === 0) {
@@ -142,6 +170,11 @@ const checkPostitions = async () => {
   return true;
 };
 
+/**
+ * Fetches the balances from exchange via REST
+ *
+ * @returns
+ */
 const checkBalances = async () => {
   const balances = await rest.balances();
   balances.forEach((b) => {
@@ -158,12 +191,12 @@ const checkBalances = async () => {
 
 
 
-setInterval(() => {
-  checkBalances();
-  checkPostitions();
-}, 10000);
-
-
+if (VERBOSE) {
+  setInterval(() => {
+    checkBalances();
+    checkPositions();
+  }, 10000);
+}
 
 // Testing Area ---------------------------
 

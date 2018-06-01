@@ -2,7 +2,10 @@
 const { RSI } = require('technicalindicators');
 
 
-
+/**
+ * Calculates the RSI indicator and determines if a position should be opened
+ * @param {any} closeData
+ */
   module.exports.rsiCalculation = function (closeData) {
     const inputRSI = {
       values: closeData,
