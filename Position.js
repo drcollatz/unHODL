@@ -1,4 +1,4 @@
-
+const config = require('./config');
 
 module.exports = class Position {
     constructor(pair, type, amount, orderPrice, takeProfitPerc, stopLossPerc, doTrailing){
@@ -7,11 +7,21 @@ module.exports = class Position {
         this.amount = amount
         this.orderPrice = orderPrice;
 
-        this.takeProfitPrice = (this.orderPrice * (1 + (takeProfitPerc / 100))).toFixed(3);;
-        this.stopLossPrice = (this.orderPrice * (1 - (stopLossPerc / 100))).toFixed(3);
+        if(this.type === 'long')
+        {
+            this.takeProfitPrice = (this.orderPrice * (1 + (takeProfitPerc / 100))).toFixed(3);;
+            this.stopLossPrice = (this.orderPrice * (1 - (stopLossPerc / 100))).toFixed(3);
+        }
+        else if(this.type === 'short')
+        {
+            this.takeProfitPrice = (this.orderPrice * (1 - (takeProfitPerc / 100))).toFixed(3);;
+            this.stopLossPrice = (this.orderPrice * (1 + (stopLossPerc / 100))).toFixed(3);
+        }
+        
 
         this.doTrailing = doTrailing;
         this.stopLossBasePrice = this.orderPrice;
+        this.takeProfitBasePrice = this.orderPrice;
         this.profit = 0;
     }
     toString() {
@@ -60,15 +70,31 @@ module.exports = class Position {
     * Trailing of stop loss limit if profit increase
     */
     updateStopLoss() {
-    if (this.type === 'long' && pair.currentPrice > this.stopLossBasePrice) {
-        this.stopLossPrice = (pair.currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
-        this.stopLossBasePrice = pair.currentPrice;
+    if (this.type === 'long' && this.pair.currentPrice > this.stopLossBasePrice) {
+        this.stopLossPrice = (this.pair.currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
+        this.stopLossBasePrice = this.pair.currentPrice;
         console.log(`Stop Loss updated to: ${this.stopLossPrice}`);
     } 
-    else if ((this.type === 'short' && pair.currentPrice < this.stopLossBasePrice)) {
-        this.stopLossPrice = (pair.currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
-        this.stopLossBasePrice = pair.currentPrice;
+    else if ((this.type === 'short' && this.pair.currentPrice < this.stopLossBasePrice)) {
+        this.stopLossPrice = (this.pair.currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
+        this.stopLossBasePrice = this.pair.currentPrice;
         console.log(`Stop Loss updated to: ${this.stopLossPrice}`);
+    }
+}
+
+    /**
+    * Trailing of take profit limit increase
+    */
+   updateTakeProfit() {
+    if (this.type === 'long' && this.pair.currentPrice > this.takeProfitBasePrice) {
+        this.takeProfitPrice = (this.pair.currentPrice * (1 + (this.takeProfitPerc / 100))).toFixed(3);;
+        this.takeProfitBasePrice = this.pair.currentPrice;
+        console.log(`Take profit updated to: ${this.takeProfitPrice}`);
+    } 
+    else if ((this.type === 'short' && this.pair.currentPrice < this.takeProfitBasePrice)) {
+        this.takeProfitPrice = (this.pair.currentPrice * (1 - (this.takeProfitPerc / 100))).toFixed(3);
+        this.takeProfitBasePrice = this.pair.currentPrice;
+        console.log(`Take profit updated to: ${this.takeProfitPrice}`);
     }
   }
 

@@ -13,7 +13,7 @@ module.exports =
     class LiveTradingPair {
  
         
-        constructor(candleKey){
+        constructor(candleKey, trailing){
 
             /* create array for all instanced pairs */
             if(LiveTradingPair.activePairs == null)
@@ -25,6 +25,7 @@ module.exports =
 
             this.blockOpeningNewPosition = false;
             this.candleKey = candleKey;
+            this.trailing = trailing;
 
             this.observers = [];
             this.activePosition = null;
@@ -133,7 +134,7 @@ module.exports =
                         this.currentPrice, 
                         config.trading.takeProfitPerc,
                         config.trading.stopLossPerc,
-                        false);
+                        this.trailing);
 
                     this.activePosition = newPos;
                     this.blockOpeningNewPosition = true;
@@ -154,7 +155,7 @@ module.exports =
                     this.currentPrice, 
                     config.trading.takeProfitPerc,
                     config.trading.stopLossPerc,
-                    false);
+                    this.trailing);
 
                 this.activePosition = newPos;
                 this.blockOpeningNewPosition = true;

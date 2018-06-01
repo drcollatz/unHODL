@@ -28,6 +28,7 @@ let blockOpeningNewPosition = false;
 
 const CANDLE_KEY_EOS_USD = 'trade:1m:tEOSUSD';
 const CANDLE_KEY_BTC_USD = 'trade:1m:tBTCUSD';
+const CANDLE_KEY_ETH_USD = 'trade:1m:tETHUSD';
 
 
 mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
@@ -66,12 +67,14 @@ function observerCallback(data){
 }
 
 
-var pairEosUsd = new LiveTradingPair(CANDLE_KEY_EOS_USD);
+var pairEosUsd = new LiveTradingPair(CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.trailing);
 pairEosUsd.subscribe(observerCallback);
 
-var pairBtcUsd = new LiveTradingPair(CANDLE_KEY_BTC_USD);
+var pairBtcUsd = new LiveTradingPair(CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
 pairBtcUsd.subscribe(observerCallback);
 
+var pairEthUsd = new LiveTradingPair(CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
+pairEthUsd.subscribe(observerCallback);
 
 
 const savePriceToDb = async (currentPrice) => {
