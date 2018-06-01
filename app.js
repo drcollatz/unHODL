@@ -1,66 +1,83 @@
 process.env.NTBA_FIX_319 = 1; // needed for telegram issue
 
 const config = require('./config');
-const BFX = require('bitfinex-api-node');
 
 const mongoose = require('mongoose');
 const Price = require('./models/price');
 const { RSI } = require('technicalindicators');
-const TelegramBot = require('node-telegram-bot-api');
 
-const CANDLE_KEY = 'trade:1m:tEOSUSD';
-const telegramOnline = true;
+var TelegramConnector = require('./TelegramConnector.js');
+var LiveTradingPair = require('./Exchange.js');
+
+
 const balance = {};
 const position = {};
+
 let currentPrice = '';
 let currentRSI = '';
+
 let takeProfitOrderPrice = '';
 let stopLossOrderPrice = '';
 let positionOpen = false;
 let blockOpeningNewPosition = false;
 
+
+const CANDLE_KEY_EOS_USD = 'trade:1m:tEOSUSD';
+const CANDLE_KEY_BTC_USD = 'trade:1m:tBTCUSD';
+
+
 mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
 
-const bot = new TelegramBot(config.telegram.token, {
-  polling: true,
-});
+TelegramConnector.initBot();
+TelegramConnector.sendToChat(`- unHODL Bot started...`);
 
-bot.onText(/\/balance/, () => {
-  bot.sendMessage(config.telegram.chat, `Available balance: ${balance.available}\nAvailable amount: ${balance.amount}`);
-});
 
-bot.onText(/\/close/, () => {
-  bot.sendMessage(config.telegram.chat, 'close received - implementation pending');
-});
+function observerCallback(data){
 
-bot.onText(/\/pos/, () => {
-  bot.sendMessage(config.telegram.chat, `Open position \nAmount: ${(position.amount).toFixed(2)} \nP/L: ${position.pl} (${position.plPerc} %)`);
-});
+  currentPrice = data.get('price');
+  currentRSI = data.get('RSI');
 
-bot.onText(/\/price/, () => {
-  bot.sendMessage(config.telegram.chat, `Current price: ${currentPrice}`);
-});
+  //checkClosing();
+  //savePriceToDb();
+  if (blockOpeningNewPosition &&
+      (currentRSI < config.indicators.rsi.longValue &&
+        currentRSI > config.indicators.rsi.shortValue)) {
+      blockOpeningNewPosition = false;
+    }
+    if (currentRSI >= config.indicators.rsi.longValue &&
+      !positionOpen &&
+      !blockOpeningNewPosition) {
+      // open long position
+      takeProfitOrderPrice = (Exchange.currentPrice * (1 + (config.trading.takeProfitPerc / 100))).toFixed(3);
+      stopLossOrderPrice = (Exchange.currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
+      positionOpen = 'long';
+      handleOpenPosition();
+    } else if (currentRSI <= config.indicators.rsi.shortValue &&
+      !positionOpen &&
+      !blockOpeningNewPosition) {
+      // open short position
+      takeProfitOrderPrice = (Exchange.currentPrice * (1 - (config.trading.takeProfitPerc / 100))).toFixed(3);
+      stopLossOrderPrice = (Exchange.currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
+      positionOpen = 'short';
+      handleOpenPosition();
+    }
+    let time = `${new Date().toLocaleTimeString()}`;
+    console.log(time);
+    console.log(data);
+}
 
-const bfx = new BFX({
-  apiKey: config.bitfinex.key,
-  apiSecret: config.bitfinex.secret,
-  ws: {
-    autoReconnect: true,
-    seqAudit: true,
-    packetWDDelay: 10 * 1000,
-  },
-});
+function observerCallbackBTC(data){
+    let time = `${new Date().toLocaleTimeString()}`;
+    console.log(time);
+    console.log(data);
+}
 
-const ws = bfx.ws(2, {
-  manageCandles: true, // enable candle dataset persistence/management
-  transform: true, // converts ws data arrays to Candle models (and others)
-});
+var pairEosUsd = new LiveTradingPair(CANDLE_KEY_EOS_USD);
+pairEosUsd.subscribe(observerCallback);
 
-const rest = bfx.rest(2, {
-  transform: true,
-});
+var pairBtcUsd = new LiveTradingPair(CANDLE_KEY_BTC_USD);
+pairBtcUsd.subscribe(observerCallbackBTC);
 
-if (telegramOnline) bot.sendMessage(config.telegram.chat, `${new Date().toLocaleTimeString()} - unHODL Bot started...`);
 
 function checkClosing() {
   let success = false;
@@ -80,7 +97,7 @@ function checkClosing() {
     const msg = `${new Date().toLocaleTimeString()} - Postition closed @: ${(success) ? `${takeProfitOrderPrice} (SUCCESS)` : `${stopLossOrderPrice} (FAILED)`}`;
     console.log(msg);
     if (telegramOnline) {
-      bot.sendMessage(config.telegram.chat, msg);
+      TelegramConnector.sendToChat(msg);
     }
   }
 }
@@ -90,43 +107,10 @@ function handleOpenPosition() {
   const msg = `${new Date().toLocaleTimeString()} - RSI: ${currentRSI} @ ${currentPrice} \n(TP: ${takeProfitOrderPrice})\n(SL: ${stopLossOrderPrice})`;
   console.log(msg);
   console.log('Postition opened');
-  if (telegramOnline) {
-    bot.sendMessage(config.telegram.chat, msg);
-  }
+  TelegramConnector.sendToChat(msg);
 }
 
-function rsiCalculation(closeData) {
-  const inputRSI = {
-    values: closeData,
-    period: 14,
-  };
-  const rsiResultArray = RSI.calculate(inputRSI);
-  currentRSI = rsiResultArray[rsiResultArray.length - 1];
 
-  if (blockOpeningNewPosition &&
-    (currentRSI < config.indicators.rsi.longValue &&
-      currentRSI > config.indicators.rsi.shortValue)) {
-    blockOpeningNewPosition = false;
-  }
-  if (currentRSI >= config.indicators.rsi.longValue &&
-    !positionOpen &&
-    !blockOpeningNewPosition) {
-    // open long position
-    takeProfitOrderPrice = (currentPrice * (1 + (config.trading.takeProfitPerc / 100))).toFixed(3);
-    stopLossOrderPrice = (currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
-    positionOpen = 'long';
-    handleOpenPosition();
-  } else if (currentRSI <= config.indicators.rsi.shortValue &&
-    !positionOpen &&
-    !blockOpeningNewPosition) {
-    // open short position
-    takeProfitOrderPrice = (currentPrice * (1 - (config.trading.takeProfitPerc / 100))).toFixed(3);
-    stopLossOrderPrice = (currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
-    positionOpen = 'short';
-    handleOpenPosition();
-  }
-  console.log(`${new Date().toLocaleTimeString()} - RSI : ${currentRSI} @ ${currentPrice}`);
-}
 
 const savePriceToDb = async () => {
   const price = new Price({
@@ -170,34 +154,16 @@ const checkBalances = async () => {
   });
 };
 
-bot.on('polling_error', (error) => {
-  console.log(`Telegram Error - ${error.message}`);
-  //  telegramOnline = false;
-  //  bot.stopPolling();
-});
 
-ws.on('error', (err) => { console.log(err); });
-ws.on('close', () => console.log('closed'));
 
-ws.on('open', () => {
-  ws.auth.bind(ws);
-  console.log('Bitfinex Websocket open...');
-  ws.subscribeCandles(CANDLE_KEY);
-});
 
-ws.onCandle({ key: CANDLE_KEY }, (candles) => {
-  currentPrice = candles[0].close; // current candle close is most accurate price vs. ticker
-  checkClosing();
-  rsiCalculation(candles.map(x => x.close).reverse());
-  savePriceToDb();
-});
 
 setInterval(() => {
   checkBalances();
   checkPostitions();
 }, 10000);
 
-ws.open();
+
 
 // Testing Area ---------------------------
 
