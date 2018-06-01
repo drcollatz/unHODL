@@ -4,13 +4,9 @@ var LiveTradingPair = require('./Exchange.js');
 
 var bot;
 
-var telegramConfig = {};
-
-
 
 module.exports = {
 
-    telegramConfig,
 
     sendToChat: function (msg) {
         bot.sendMessage(config.telegram.chat, `${new Date().toLocaleTimeString()} - ${msg}`);
@@ -30,7 +26,20 @@ module.exports = {
         });
                   
         bot.onText(/\/pos/, () => {
-            bot.sendMessage(config.telegram.chat,`Open position \nAmount: ${(position.amount).toFixed(2)} \nP/L: ${position.pl} (${position.plPerc} %)`);
+            LiveTradingPair.activePairs.forEach(function(pair)
+            {
+            if(pair.activePosition != null)
+            {
+                bot.sendMessage(config.telegram.chat,
+                    `Pair: ${pair.candleKey} - Current pos: ${pair.activePosition.toString()}`);
+            }
+            else{
+                bot.sendMessage(config.telegram.chat,
+                    `No active positions for active pair ${pair.candleKey}`);
+            }
+
+ 
+            })
         });
                   
         bot.onText(/\/price/, () => {

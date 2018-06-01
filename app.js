@@ -38,105 +38,43 @@ TelegramConnector.sendToChat(`- unHODL Bot started...`);
 
 function observerCallback(data){
 
-  currentPrice = data.get('price');
-  currentRSI = data.get('RSI');
+  if(data.get('key') == 'candleUpdate')
+  {
+    currentPrice = data.get('price');
+    currentRSI = data.get('RSI');
+    savePriceToDb(currentPrice);
+    const msg = `Update for: ${data.get('context').candleKey}: RSI: ${currentRSI} @ ${currentPrice})`;
+    console.log(msg);
+  }
+  else if (data.get('key') == 'newPos')
+  {
+    var context = data.get('context');
+    const msg = `Position opened: \n ${data.get('pos').toString()}`;
+    TelegramConnector.sendToChat(msg);
+    console.log(msg);
+  }
+  else if (data.get('key') == 'closedPos')
+  {
+    var context = data.get('context');
+    const msg = `Position closed: \n ${data.get('pos').toString()}`;
+    TelegramConnector.sendToChat(msg);
+    console.log(msg);
+  }
 
-  //checkClosing();
-  //savePriceToDb();
-  if (blockOpeningNewPosition &&
-      (currentRSI < config.indicators.rsi.longValue &&
-        currentRSI > config.indicators.rsi.shortValue)) {
-      blockOpeningNewPosition = false;
-    }
-    if (currentRSI >= config.indicators.rsi.longValue &&
-      !positionOpen &&
-      !blockOpeningNewPosition) {
-      // open long position
-      takeProfitOrderPrice = (Exchange.currentPrice * (1 + (config.trading.takeProfitPerc / 100))).toFixed(3);
-      stopLossOrderPrice = (Exchange.currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
-      positionOpen = 'long';
-      handleOpenPosition();
-    } else if (currentRSI <= config.indicators.rsi.shortValue &&
-      !positionOpen &&
-      !blockOpeningNewPosition) {
-      // open short position
-      takeProfitOrderPrice = (Exchange.currentPrice * (1 - (config.trading.takeProfitPerc / 100))).toFixed(3);
-      stopLossOrderPrice = (Exchange.currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
-      positionOpen = 'short';
-      handleOpenPosition();
-    }
-    let time = `${new Date().toLocaleTimeString()}`;
-    console.log(time);
-    console.log(data);
+ 
+
 }
 
-function observerCallbackBTC(data){
-    let time = `${new Date().toLocaleTimeString()}`;
-    console.log(time);
-    console.log(data);
-}
 
 var pairEosUsd = new LiveTradingPair(CANDLE_KEY_EOS_USD);
 pairEosUsd.subscribe(observerCallback);
 
 var pairBtcUsd = new LiveTradingPair(CANDLE_KEY_BTC_USD);
-pairBtcUsd.subscribe(observerCallbackBTC);
-
-/**
- * Trailing of stop loss limit if profit increase
- */
-function updateStopLoss() {
-  if (positionOpen === 'long' && currentPrice > stopLossBasePrice) {
-    stopLossOrderPrice = (currentPrice * (1 - (config.trading.stopLossPerc / 100))).toFixed(3);
-    stopLossBasePrice = currentPrice;
-    console.log(`Stop Loss updated to: ${stopLossOrderPrice}`);
-  } else if ((positionOpen === 'short' && currentPrice < stopLossBasePrice)) {
-    stopLossOrderPrice = (currentPrice * (1 + (config.trading.stopLossPerc / 100))).toFixed(3);
-    stopLossBasePrice = currentPrice;
-    console.log(`Stop Loss updated to: ${stopLossOrderPrice}`);
-  }
-}
-/**
- * Checks if the position closing conditions are met.
- */
-function checkClosing() {
-  let success = false;
-  let closed = false;
-  if ((positionOpen === 'long' && currentPrice >= takeProfitOrderPrice) ||
-    (positionOpen === 'short' && currentPrice <= takeProfitOrderPrice)) {
-    positionOpen = false;
-    success = true;
-    closed = true;
-  } else if ((positionOpen === 'long' && currentPrice <= stopLossOrderPrice) ||
-    (positionOpen === 'short' && currentPrice >= stopLossOrderPrice)) {
-    positionOpen = false;
-    success = false;
-    closed = true;
-  }
-  if (closed) {
-    const msg = `${new Date().toLocaleTimeString()} - Position closed @: ${(success) ? `${takeProfitOrderPrice} (SUCCESS)` : `${stopLossOrderPrice} (FAILED)`}`;
-    console.log(msg);
-    if (telegramOnline) {
-      TelegramConnector.sendToChat(msg);
-    }
-  }
-  updateStopLoss();
-}
-/**
- * Opens a position.
- */
-function handleOpenPosition() {
-  blockOpeningNewPosition = true;
-  stopLossBasePrice = currentPrice;
-  const msg = `${new Date().toLocaleTimeString()} - RSI: ${currentRSI} @ ${currentPrice} \n(TP: ${takeProfitOrderPrice})\n(SL: ${stopLossOrderPrice})`;
-  console.log(msg);
-  console.log('Postition opened');
-  TelegramConnector.sendToChat(msg);
-}
+pairBtcUsd.subscribe(observerCallback);
 
 
 
-const savePriceToDb = async () => {
+const savePriceToDb = async (currentPrice) => {
   const price = new Price({
     _id: new mongoose.Types.ObjectId(),
     pair: 'EOSUSD',
