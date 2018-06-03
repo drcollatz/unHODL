@@ -106,7 +106,8 @@ module.exports =
     }
 
     checkMarketSituation() {
-      if (this.blockOpeningNewPosition &&
+      if (this.activePosition == null &&
+        this.blockOpeningNewPosition &&
         (this.currentRSI < config.indicators.rsi.longValue &&
           this.currentRSI > config.indicators.rsi.shortValue)) {
         this.blockOpeningNewPosition = false;
