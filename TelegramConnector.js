@@ -5,10 +5,7 @@ const Balance = require('./Balance');
 
 let bot;
 
-
 module.exports = {
-
-
   sendToChat(msg) {
     bot.sendMessage(config.telegram.chat, `${new Date().toLocaleTimeString()} - ${msg}`);
   },
@@ -21,7 +18,10 @@ module.exports = {
     bot.onText(/\/balance/, async () => {
       const b = new Balance();
       const balance = await b.getBalance();
-      bot.sendMessage(config.telegram.chat, `Available balance: ${balance.available}\nAvailable amount: ${balance.amount}`);
+      bot.sendMessage(
+        config.telegram.chat,
+        `Available balance: ${balance.available}\nAvailable amount: ${balance.amount}`,
+      );
     });
 
     bot.onText(/\/close/, () => {
@@ -45,7 +45,11 @@ module.exports = {
     });
 
     bot.onText(/\/price/, () => {
-      LiveTradingPair.activePairs.forEach(pair => bot.sendMessage(config.telegram.chat, `Pair: ${pair.candleKey} - Current price: ${pair.currentPrice}`));
+      LiveTradingPair.activePairs.forEach(pair =>
+        bot.sendMessage(
+          config.telegram.chat,
+          `Pair: ${pair.candleKey} - Current price: ${pair.currentPrice}`,
+        ));
     });
 
     bot.onText(/\/alive/, () => {
@@ -53,8 +57,11 @@ module.exports = {
     });
 
     bot.onText(/\/help/, () => {
-      bot.sendMessage(config.telegram.chat, 'Hello I\'m your unHODL bot.\nHere is the list of my commands:\n\n' +
-            '/balance to get balances\n/close to close open positions\n/pos to list open positions\n/price to get the current price');
+      bot.sendMessage(
+        config.telegram.chat,
+        "Hello I'm your unHODL bot.\nHere is the list of my commands:\n\n" +
+          '/balance to get balances\n/close to close open positions\n/pos to list open positions\n/price to get the current price',
+      );
     });
 
     bot.on('polling_error', (error) => {
@@ -64,4 +71,3 @@ module.exports = {
     });
   },
 };
-

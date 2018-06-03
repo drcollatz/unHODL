@@ -2,15 +2,11 @@ process.env.NTBA_FIX_319 = 1; // needed for telegram issue
 
 const config = require('./config');
 
-const mongoose = require('mongoose');
-const Price = require('./models/price');
-
 const TelegramConnector = require('./TelegramConnector.js');
 const LiveTradingPair = require('./Exchange.js');
 
 
 const VERBOSE = false;
-
 
 const position = {};
 
@@ -25,33 +21,16 @@ const pairEosUsd = new LiveTradingPair(CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.t
 const pairBtcUsd = new LiveTradingPair(CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
 const pairEthUsd = new LiveTradingPair(CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
 
-mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
-
 TelegramConnector.initBot();
 TelegramConnector.sendToChat('- unHODL Bot started...');
-
-const savePriceToDb = async () => {
-  const price = new Price({
-    _id: new mongoose.Types.ObjectId(),
-    pair: 'EOSUSD',
-    time: new Date().toLocaleTimeString(),
-    price: currentPrice,
-  });
-
-  await price.save((err) => {
-    if (err) {
-      return console.log(err);
-    }
-    return true;
-  });
-};
 
 function observerCallback(data) {
   if (data.get('key') === 'candleUpdate') {
     currentPrice = data.get('price');
     currentRSI = data.get('RSI');
-    savePriceToDb(currentPrice);
-    const msg = `Update for: ${data.get('context').candleKey}: RSI: ${currentRSI} @ ${currentPrice})`;
+    const msg = `Update for: ${
+      data.get('context').candleKey
+    }: RSI: ${currentRSI} @ ${currentPrice})`;
     console.log(msg);
   } else if (data.get('key') === 'newPos') {
     // const context = data.get('context');
@@ -82,16 +61,16 @@ const checkPositions = async () => {
     return console.log('no open positions');
   }
   console.log(`${new Date().toLocaleTimeString()} - Pos Amount: ${positions[0].amount}`);
-  console.log(`${new Date().toLocaleTimeString()} - Pos P/L: ${(positions[0].pl).toFixed(2)} (${(positions[0].plPerc).toFixed(2)}%)`);
+  console.log(`${new Date().toLocaleTimeString()} - Pos P/L: ${positions[0].pl.toFixed(2)} (${positions[0].plPerc.toFixed(2)}%)`);
   position.amount = positions[0].amount;
-  position.pl = (positions[0].pl).toFixed(2);
-  position.plPerc = (positions[0].plPerc).toFixed(2);
+  position.pl = positions[0].pl.toFixed(2);
+  position.plPerc = positions[0].plPerc.toFixed(2);
   return true;
 };
 
 if (VERBOSE) {
   setInterval(() => {
-    //checkBalances();
+    // checkBalances();
     checkPositions();
   }, 10000);
 }

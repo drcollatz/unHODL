@@ -3,6 +3,7 @@ const config = require('./config');
 
 const RSI = require('./RSI.js');
 const Position = require('./Position.js');
+const Database = require('./Database.js');
 
 module.exports =
 
@@ -87,6 +88,7 @@ module.exports =
         map.set('RSI', this.currentRSI);
         this.broadcast(map);
         this.checkMarketSituation();
+        Database.savePriceToDb(this.currentPrice);
         if (this.activePosition != null) {
           this.activePosition.update();
         }
