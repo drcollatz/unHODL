@@ -1,6 +1,4 @@
-
 const { RSI } = require('technicalindicators');
-
 
 /**
  * Calculates the RSI indicator and determines if a position should be opened

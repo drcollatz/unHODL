@@ -5,32 +5,26 @@ const config = require('./config');
 const TelegramConnector = require('./TelegramConnector.js');
 const LiveTradingPair = require('./Exchange.js');
 
-
-const VERBOSE = false;
-
-const position = {};
-
-let currentPrice = '';
-let currentRSI = '';
-
 const CANDLE_KEY_EOS_USD = 'trade:1m:tEOSUSD';
 const CANDLE_KEY_BTC_USD = 'trade:1m:tBTCUSD';
 const CANDLE_KEY_ETH_USD = 'trade:1m:tETHUSD';
 
-const pairEosUsd = new LiveTradingPair(CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.trailing);
-const pairBtcUsd = new LiveTradingPair(CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
-const pairEthUsd = new LiveTradingPair(CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
-
 TelegramConnector.initBot();
 TelegramConnector.sendToChat('- unHODL Bot started...');
 
+/**
+ *
+ *
+ * @param {*} data
+ */
 function observerCallback(data) {
+  let currentPrice = '';
+  let currentRSI = '';
+  const time = new Date().toLocaleTimeString();
   if (data.get('key') === 'candleUpdate') {
     currentPrice = data.get('price');
     currentRSI = data.get('RSI');
-    const msg = `Update for: ${
-      data.get('context').candleKey
-    }: RSI: ${currentRSI} @ ${currentPrice})`;
+    const msg = `${time} - ${data.get('context').coin}, RSI: ${currentRSI} @ ${currentPrice}`;
     console.log(msg);
   } else if (data.get('key') === 'newPos') {
     // const context = data.get('context');
@@ -45,34 +39,17 @@ function observerCallback(data) {
   }
 }
 
-pairEosUsd.subscribe(observerCallback);
-pairBtcUsd.subscribe(observerCallback);
-pairEthUsd.subscribe(observerCallback);
-
-/**
- * Fetches the positions data from exchange via REST
- *
- * @returns
- */
-const checkPositions = async () => {
-  const positions = await rest.positions();
-
-  if (positions.length === 0) {
-    return console.log('no open positions');
-  }
-  console.log(`${new Date().toLocaleTimeString()} - Pos Amount: ${positions[0].amount}`);
-  console.log(`${new Date().toLocaleTimeString()} - Pos P/L: ${positions[0].pl.toFixed(2)} (${positions[0].plPerc.toFixed(2)}%)`);
-  position.amount = positions[0].amount;
-  position.pl = positions[0].pl.toFixed(2);
-  position.plPerc = positions[0].plPerc.toFixed(2);
-  return true;
-};
-
-if (VERBOSE) {
-  setInterval(() => {
-    // checkBalances();
-    checkPositions();
-  }, 10000);
+if (config.pairs.EOSUSD.enable) {
+  const pairEosUsd = new LiveTradingPair(CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.trailing);
+  pairEosUsd.subscribe(observerCallback);
+}
+if (config.pairs.BTCUSD.enable) {
+  const pairBtcUsd = new LiveTradingPair(CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
+  pairBtcUsd.subscribe(observerCallback);
+}
+if (config.pairs.ETHUSD.enable) {
+  const pairEthUsd = new LiveTradingPair(CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
+  pairEthUsd.subscribe(observerCallback);
 }
 
 // Testing Area ---------------------------
