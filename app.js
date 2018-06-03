@@ -12,7 +12,6 @@ const LiveTradingPair = require('./Exchange.js');
 const VERBOSE = false;
 
 
-const balance = {};
 const position = {};
 
 let currentPrice = '';
@@ -90,26 +89,9 @@ const checkPositions = async () => {
   return true;
 };
 
-/**
- * Fetches the balances from exchange via REST
- *
- * @returns
- */
-const checkBalances = async () => {
-  const balances = await rest.balances();
-  balances.forEach((b) => {
-    if (b.type === 'trading' && b.currency === 'usd') {
-      console.log(`${new Date().toLocaleTimeString()} - Wallet amount: ${b.amount}`);
-      console.log(`${new Date().toLocaleTimeString()} - Wallet available: ${b.available}`);
-      balance.available = b.available;
-      balance.amount = b.amount;
-    }
-  });
-};
-
 if (VERBOSE) {
   setInterval(() => {
-    checkBalances();
+    //checkBalances();
     checkPositions();
   }, 10000);
 }
