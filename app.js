@@ -4,10 +4,9 @@ const config = require('./config');
 
 const mongoose = require('mongoose');
 const Price = require('./models/price');
-const { RSI } = require('technicalindicators');
 
-var TelegramConnector = require('./TelegramConnector.js');
-var LiveTradingPair = require('./Exchange.js');
+const TelegramConnector = require('./TelegramConnector.js');
+const LiveTradingPair = require('./Exchange.js');
 
 
 const VERBOSE = false;
@@ -19,65 +18,20 @@ const position = {};
 let currentPrice = '';
 let currentRSI = '';
 
-let takeProfitOrderPrice = '';
-let stopLossOrderPrice = '';
-let positionOpen = false;
-let stopLossBasePrice = '';
-let blockOpeningNewPosition = false;
-
-
 const CANDLE_KEY_EOS_USD = 'trade:1m:tEOSUSD';
 const CANDLE_KEY_BTC_USD = 'trade:1m:tBTCUSD';
 const CANDLE_KEY_ETH_USD = 'trade:1m:tETHUSD';
 
+const pairEosUsd = new LiveTradingPair(CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.trailing);
+const pairBtcUsd = new LiveTradingPair(CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
+const pairEthUsd = new LiveTradingPair(CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
 
 mongoose.connect('mongodb+srv://unhodl:4y8xktwaoTxNQxUy@unhodl-db-eadeo.mongodb.net/test?retryWrites=true');
 
 TelegramConnector.initBot();
-TelegramConnector.sendToChat(`- unHODL Bot started...`);
+TelegramConnector.sendToChat('- unHODL Bot started...');
 
-
-function observerCallback(data){
-
-  if(data.get('key') == 'candleUpdate')
-  {
-    currentPrice = data.get('price');
-    currentRSI = data.get('RSI');
-    savePriceToDb(currentPrice);
-    const msg = `Update for: ${data.get('context').candleKey}: RSI: ${currentRSI} @ ${currentPrice})`;
-    console.log(msg);
-  }
-  else if (data.get('key') == 'newPos')
-  {
-    var context = data.get('context');
-    const msg = `Position opened: \n ${data.get('pos').toString()}`;
-    TelegramConnector.sendToChat(msg);
-    console.log(msg);
-  }
-  else if (data.get('key') == 'closedPos')
-  {
-    var context = data.get('context');
-    const msg = `Position closed: \n ${data.get('pos').toString()}`;
-    TelegramConnector.sendToChat(msg);
-    console.log(msg);
-  }
-
- 
-
-}
-
-
-var pairEosUsd = new LiveTradingPair(CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.trailing);
-pairEosUsd.subscribe(observerCallback);
-
-var pairBtcUsd = new LiveTradingPair(CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
-pairBtcUsd.subscribe(observerCallback);
-
-var pairEthUsd = new LiveTradingPair(CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
-pairEthUsd.subscribe(observerCallback);
-
-
-const savePriceToDb = async (currentPrice) => {
+const savePriceToDb = async () => {
   const price = new Price({
     _id: new mongoose.Types.ObjectId(),
     pair: 'EOSUSD',
@@ -92,6 +46,31 @@ const savePriceToDb = async (currentPrice) => {
     return true;
   });
 };
+
+function observerCallback(data) {
+  if (data.get('key') === 'candleUpdate') {
+    currentPrice = data.get('price');
+    currentRSI = data.get('RSI');
+    savePriceToDb(currentPrice);
+    const msg = `Update for: ${data.get('context').candleKey}: RSI: ${currentRSI} @ ${currentPrice})`;
+    console.log(msg);
+  } else if (data.get('key') === 'newPos') {
+    // const context = data.get('context');
+    const msg = `Position opened: \n ${data.get('pos').toString()}`;
+    TelegramConnector.sendToChat(msg);
+    console.log(msg);
+  } else if (data.get('key') === 'closedPos') {
+    // const context = data.get('context');
+    const msg = `Position closed: \n ${data.get('pos').toString()}`;
+    TelegramConnector.sendToChat(msg);
+    console.log(msg);
+  }
+}
+
+pairEosUsd.subscribe(observerCallback);
+pairBtcUsd.subscribe(observerCallback);
+pairEthUsd.subscribe(observerCallback);
+
 /**
  * Fetches the positions data from exchange via REST
  *
@@ -127,10 +106,6 @@ const checkBalances = async () => {
     }
   });
 };
-
-
-
-
 
 if (VERBOSE) {
   setInterval(() => {
