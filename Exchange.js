@@ -50,7 +50,7 @@ module.exports = class LiveTradingPair {
    * @returns
    */
   toString() {
-    return `TradingPair with key ${this.candleKey}`;
+    return `${this.coin}`;
   }
   /**
    *

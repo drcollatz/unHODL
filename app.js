@@ -10,7 +10,7 @@ const CANDLE_KEY_BTC_USD = 'trade:1m:tBTCUSD';
 const CANDLE_KEY_ETH_USD = 'trade:1m:tETHUSD';
 
 TelegramConnector.initBot();
-TelegramConnector.sendToChat('- unHODL Bot started...');
+TelegramConnector.sendToChat('- *unHODL Bot* started...');
 
 /**
  *
@@ -28,7 +28,7 @@ function observerCallback(data) {
     console.log(msg);
   } else if (data.get('key') === 'newPos') {
     // const context = data.get('context');
-    const msg = `Position opened: \n${data.get('pos').toString()}`;
+    const msg = `*Position opened:*\n${data.get('pos').toString()}`;
     TelegramConnector.sendToChat(msg);
     console.log(msg);
   } else if (data.get('key') === 'closedPos') {
