@@ -8,11 +8,11 @@ module.exports = class Position {
     this.orderPrice = orderPrice;
 
     if (this.type === 'long') {
-      this.takeProfitPrice = (this.orderPrice * (1 + (takeProfitPerc / 100))).toFixed(3);
-      this.stopLossPrice = (this.orderPrice * (1 - (stopLossPerc / 100))).toFixed(3);
+      this.takeProfitPrice = (this.orderPrice * (1 + (takeProfitPerc / 100)));
+      this.stopLossPrice = (this.orderPrice * (1 - (stopLossPerc / 100)));
     } else if (this.type === 'short') {
-      this.takeProfitPrice = (this.orderPrice * (1 - (takeProfitPerc / 100))).toFixed(3);
-      this.stopLossPrice = (this.orderPrice * (1 + (stopLossPerc / 100))).toFixed(3);
+      this.takeProfitPrice = (this.orderPrice * (1 - (takeProfitPerc / 100)));
+      this.stopLossPrice = (this.orderPrice * (1 + (stopLossPerc / 100)));
     }
 
     this.doTrailing = doTrailing;
@@ -80,14 +80,14 @@ module.exports = class Position {
       this.stopLossPrice = (
         this.pair.currentPrice *
         (1 - (config.trading.stopLossPerc / 100))
-      ).toFixed(3);
+      );
       this.stopLossBasePrice = this.pair.currentPrice;
       console.log(`Stop Loss updated to: ${this.stopLossPrice}`);
     } else if (this.type === 'short' && this.pair.currentPrice < this.stopLossBasePrice) {
       this.stopLossPrice = (
         this.pair.currentPrice *
         (1 + (config.trading.stopLossPerc / 100))
-      ).toFixed(3);
+      );
       this.stopLossBasePrice = this.pair.currentPrice;
       console.log(`Stop Loss updated to: ${this.stopLossPrice}`);
     }
@@ -99,12 +99,12 @@ module.exports = class Position {
   updateTakeProfit() {
     if (this.type === 'long' && this.pair.currentPrice > this.takeProfitBasePrice) {
       this.takeProfitPrice = (this.pair.currentPrice *
-        (1 + (this.takeProfitPerc / 100))).toFixed(3);
+        (1 + (this.takeProfitPerc / 100)));
       this.takeProfitBasePrice = this.pair.currentPrice;
       console.log(`Take profit updated to: ${this.takeProfitPrice}`);
     } else if (this.type === 'short' && this.pair.currentPrice < this.takeProfitBasePrice) {
       this.takeProfitPrice = (this.pair.currentPrice *
-        (1 - (this.takeProfitPerc / 100))).toFixed(3);
+        (1 - (this.takeProfitPerc / 100)));
       this.takeProfitBasePrice = this.pair.currentPrice;
       console.log(`Take profit updated to: ${this.takeProfitPrice}`);
     }
