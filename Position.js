@@ -21,11 +21,8 @@ module.exports = class Position {
     this.profit = 0;
   }
   toString() {
-    const ret = `${this.type} position on ${this.pair}: ${this.amount} for ${
-      this.orderPrice
-    } \n TP = ${this.takeProfitPrice} \n SL = ${
-      this.stopLossPrice
-    } \n current profit = ${this.profit.toFixed(2)} \n trailing is ${this.doTrailing}`;
+    const close = (this.closingPrice) ? `closed @: ${this.closingPrice}\n` : '';
+    const ret = `${close}${this.type} position on ${this.pair}: ${this.amount}\nfor ${this.orderPrice} \nTP = ${this.takeProfitPrice}\nSL = ${this.stopLossPrice} \ncurrent profit = ${this.profit.toFixed(2)}\ntrailing is ${this.doTrailing}`;
     return ret;
   }
 
@@ -35,6 +32,7 @@ module.exports = class Position {
 
   close() {
     this.profit = (this.amount * this.pair.currentPrice) - (this.amount * this.orderPrice);
+    this.closingPrice = this.pair.currentPrice;
   }
 
   update() {

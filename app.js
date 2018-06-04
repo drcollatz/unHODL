@@ -28,12 +28,12 @@ function observerCallback(data) {
     console.log(msg);
   } else if (data.get('key') === 'newPos') {
     // const context = data.get('context');
-    const msg = `Position opened: \n ${data.get('pos').toString()}`;
+    const msg = `Position opened: \n${data.get('pos').toString()}`;
     TelegramConnector.sendToChat(msg);
     console.log(msg);
   } else if (data.get('key') === 'closedPos') {
     // const context = data.get('context');
-    const msg = `Position closed: \n ${data.get('pos').toString()}`;
+    const msg = `Position closed: \n${data.get('pos').toString()}`;
     TelegramConnector.sendToChat(msg);
     console.log(msg);
   }
