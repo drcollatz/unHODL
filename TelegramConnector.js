@@ -7,7 +7,7 @@ let bot;
 
 module.exports = {
   sendToChat(msg) {
-    bot.sendMessage(config.telegram.chat, `${new Date().toLocaleTimeString()} - ${msg}`);
+    bot.sendMessage(config.telegram.chat, `${new Date().toLocaleTimeString()} - ${msg}`, { parse_mode: 'Markdown' });
   },
 
   initBot() {
