@@ -21,10 +21,10 @@ module.exports = class Position {
     this.profit = 0;
   }
   toString() {
-    const close = (this.closingPrice) ? `closed @: ${this.closingPrice}\n` : '';
+    const close = (this.closingPrice) ? `closed @ : ${this.closingPrice}\n` : '';
     const profit = (this.profit) ? `Profit: ${this.profit.toFixed(2)}\n` : '';
     const trailing = (this.doTrailing) ? 'Trailing is active\n' : '';
-    const ret = `${close}${this.type} position on ${this.pair}\nopen =\t${this.orderPrice} \nTP =\t${this.takeProfitPrice}\nSL =\t${this.stopLossPrice}\n${profit}${trailing}`;
+    const ret = `${close}${this.type} on ${this.pair}\nopen = ${this.orderPrice}\nAmount = ${(this.amount).toFixed(3)}\nRSI = ${this.pair.currentRSI}\nTP = ${(this.takeProfitPrice).toFixed(3)}\nSL = ${(this.stopLossPrice).toFixed(3)}\n${profit}${trailing}`;
     return ret;
   }
 
@@ -49,7 +49,7 @@ module.exports = class Position {
     }
 
     if (this.doTrailing) {
-      this.updateTakeProfit();
+    //  this.updateTakeProfit();
       this.updateStopLoss();
     }
   }
@@ -82,14 +82,14 @@ module.exports = class Position {
         (1 - (config.trading.stopLossPerc / 100))
       );
       this.stopLossBasePrice = this.pair.currentPrice;
-      console.log(`Stop Loss updated to: ${this.stopLossPrice}`);
+      console.log(`Stop Loss updated to: ${(this.stopLossPrice).toFixed(3)}`);
     } else if (this.type === 'short' && this.pair.currentPrice < this.stopLossBasePrice) {
       this.stopLossPrice = (
         this.pair.currentPrice *
         (1 + (config.trading.stopLossPerc / 100))
       );
       this.stopLossBasePrice = this.pair.currentPrice;
-      console.log(`Stop Loss updated to: ${this.stopLossPrice}`);
+      console.log(`Stop Loss updated to: ${(this.stopLossPrice).toFixed(3)}`);
     }
   }
 

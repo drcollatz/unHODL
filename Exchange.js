@@ -158,7 +158,7 @@ module.exports = class LiveTradingPair {
       const newPos = new Position(
         this,
         'long',
-        0.1,
+        (config.trading.startBalance / this.currentPrice) * config.trading.margin,
         this.currentPrice,
         config.trading.takeProfitPerc,
         config.trading.stopLossPerc,
