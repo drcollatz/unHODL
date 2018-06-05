@@ -1,6 +1,13 @@
 const config = require('./config');
 
-module.exports = class Position {
+
+const PositionType = {
+  LONG: 0,
+  SHORT: 1,
+};
+module.exports.PositionType = PositionType;
+
+module.exports.Position = class Position {
   constructor(pair, type, amount, orderPrice, takeProfitPerc, stopLossPerc, doTrailing) {
     this.pair = pair;
     this.type = type;

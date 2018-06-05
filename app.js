@@ -1,10 +1,17 @@
+const LiveTradingPair = require('./TradingPair.js').LiveTradingPair;
+const TradeTrigger = require('./TradeTrigger.js').TradeTrigger;
+const Condition = require('./TradeTrigger.js').Condition;
+const Indicator = require('./Indicator.js').Indicator;
+const PositionType = require('./Position.js').PositionType;
+
+// import LiveTradingPair from './TradingPair';
+
 process.env.NTBA_FIX_319 = 1; // needed for telegram issue
 
 const config = require('./config');
 const Exchange = require('./Exchange.js');
 
 const TelegramConnector = require('./TelegramConnector.js');
-const LiveTradingPair = require('./TradingPair.js');
 
 const CANDLE_KEY_EOS_USD = 'trade:1m:tEOSUSD';
 const CANDLE_KEY_BTC_USD = 'trade:1m:tBTCUSD';
@@ -39,16 +46,37 @@ const exchange = new Exchange(config.bitfinex.key, config.bitfinex.secret);
 if (config.pairs.EOSUSD.enable) {
   const pairEosUsd =
     new LiveTradingPair(exchange, CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.trailing);
+  const rsiConditionRise = new Condition(70, true, false, Indicator.RSI, pairEosUsd);
+  const rsiConditionFall = new Condition(30, false, true, Indicator.RSI, pairEosUsd);
+  const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
+  const tradeTriggerRsiShort = new TradeTrigger(rsiConditionFall, PositionType.SHORT);
+
+  pairEosUsd.addTrigger(tradeTriggerRsiLong);
+  pairEosUsd.addTrigger(tradeTriggerRsiShort);
   pairEosUsd.subscribe(observerCallback);
 }
 if (config.pairs.BTCUSD.enable) {
   const pairBtcUsd =
     new LiveTradingPair(exchange, CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
+  const rsiConditionRise = new Condition(70, true, false, Indicator.RSI, pairBtcUsd);
+  const rsiConditionFall = new Condition(30, false, true, Indicator.RSI, pairBtcUsd);
+  const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
+  const tradeTriggerRsiShort = new TradeTrigger(rsiConditionFall, PositionType.SHORT);
+
+  pairBtcUsd.addTrigger(tradeTriggerRsiLong);
+  pairBtcUsd.addTrigger(tradeTriggerRsiShort);
   pairBtcUsd.subscribe(observerCallback);
 }
 if (config.pairs.ETHUSD.enable) {
   const pairEthUsd =
     new LiveTradingPair(exchange, CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
+  const rsiConditionRise = new Condition(70, true, false, Indicator.RSI, pairEthUsd);
+  const rsiConditionFall = new Condition(30, false, true, Indicator.RSI, pairEthUsd);
+  const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
+  const tradeTriggerRsiShort = new TradeTrigger(rsiConditionFall, PositionType.SHORT);
+
+  pairEthUsd.addTrigger(tradeTriggerRsiLong);
+  pairEthUsd.addTrigger(tradeTriggerRsiShort);
   pairEthUsd.subscribe(observerCallback);
 }
 

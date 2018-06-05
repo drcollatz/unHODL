@@ -1,9 +1,12 @@
 
 const config = require('./config');
 const RSI = require('./RSI.js');
-const Position = require('./Position.js');
+const Position = require('./Position.js').Position;
+const Indicator = require('./Indicator.js').Indicator;
+const TradeTrigger = require('./TradeTrigger.js').TradeTrigger;
 
-module.exports = class LiveTradingPair {
+
+module.exports.LiveTradingPair = class LiveTradingPair {
   /**
  *
  *
@@ -15,11 +18,17 @@ module.exports = class LiveTradingPair {
       const candles = data.get('candles');
       if (candles != null) {
         this.currentPrice = candles[0].close; // current candle close is more accurate then ticker
-        this.currentRSI = RSI.rsiCalculation(candles.map(x => x.close).reverse());
-        const msg = `${time} - ${this.toString()}, RSI: ${this.currentRSI.toFixed(3)} @ ${this.currentPrice.toFixed(3)}`;
+        this.indicators[Indicator.RSI] = RSI.rsiCalculation(candles.map(x => x.close).reverse());
+        this.currentRSI = this.indicators[Indicator.RSI];
+        const msg = `${time} - ${this.toString()}, RSI: ${this.indicators[Indicator.RSI].toFixed(3)} @ ${this.currentPrice.toFixed(3)}`;
         console.log(msg);
         this.checkMarketSituation();
-        if (this.activePosition != null) {       
+        this.tradeTriggers.forEach((tradeTrigger) => {
+          if (tradeTrigger.checkTrigger()) {
+            console.log('Condition is true!');
+          }
+        });
+        if (this.activePosition != null) {
           this.activePosition.update();
         }
       }
@@ -34,6 +43,10 @@ module.exports = class LiveTradingPair {
     this.currentPrice = 0;
     this.currentRSI = 0;
     this.sumProfit = 0;
+    this.indicators = [];
+    this.tradeTriggers = [];
+
+    this.indicators[Indicator.RSI] = 0;
 
     this.blockOpeningNewPosition = false;
     this.candleKey = candleKey;
@@ -50,7 +63,13 @@ module.exports = class LiveTradingPair {
     }
   }
 
+  getValueForIndicator(indicator) {
+    return this.indicators[indicator];
+  }
 
+  addTrigger(tradeTrigger) {
+    this.tradeTriggers.push(tradeTrigger);
+  }
   /**
      *
      *
@@ -153,7 +172,7 @@ module.exports = class LiveTradingPair {
       const newPos = new Position(
         this,
         'short',
-        0.1,
+        (config.trading.startBalance / this.currentPrice) * config.trading.margin,
         this.currentPrice,
         config.trading.takeProfitPerc,
         config.trading.stopLossPerc,
@@ -190,3 +209,5 @@ module.exports = class LiveTradingPair {
     return true;
   }
 };
+
+// module.exports.LiveTradingPair = LiveTradingPair;
