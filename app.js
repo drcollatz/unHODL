@@ -1,9 +1,10 @@
 process.env.NTBA_FIX_319 = 1; // needed for telegram issue
 
 const config = require('./config');
+const Exchange = require('./Exchange.js');
 
 const TelegramConnector = require('./TelegramConnector.js');
-const LiveTradingPair = require('./Exchange.js');
+const LiveTradingPair = require('./TradingPair.js');
 
 const CANDLE_KEY_EOS_USD = 'trade:1m:tEOSUSD';
 const CANDLE_KEY_BTC_USD = 'trade:1m:tBTCUSD';
@@ -18,37 +19,36 @@ TelegramConnector.sendToChat('- *unHODL Bot* started...');
  * @param {*} data
  */
 function observerCallback(data) {
-  let currentPrice = '';
-  let currentRSI = '';
   const time = new Date().toLocaleTimeString();
-  if (data.get('key') === 'candleUpdate') {
-    currentPrice = data.get('price');
-    currentRSI = data.get('RSI');
-    const msg = `${time} - ${data.get('context').coin}, RSI: ${currentRSI} @ ${currentPrice}`;
-    console.log(msg);
-  } else if (data.get('key') === 'newPos') {
+  if (data.get('key') === 'newPos') {
     // const context = data.get('context');
-    const msg = `*Position opened:*\n${data.get('pos').toString()}`;
+    const msg = `* ${time} - Position opened:*\n${data.get('pos').toString()}`;
     TelegramConnector.sendToChat(msg);
     console.log(msg);
   } else if (data.get('key') === 'closedPos') {
     // const context = data.get('context');
-    const msg = `Position closed: \n${data.get('pos').toString()}`;
+    const msg = `${time} - Position closed: \n${data.get('pos').toString()}`;
     TelegramConnector.sendToChat(msg);
     console.log(msg);
   }
 }
 
+const exchange = new Exchange(config.bitfinex.key, config.bitfinex.secret);
+
+
 if (config.pairs.EOSUSD.enable) {
-  const pairEosUsd = new LiveTradingPair(CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.trailing);
+  const pairEosUsd =
+    new LiveTradingPair(exchange, CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.trailing);
   pairEosUsd.subscribe(observerCallback);
 }
 if (config.pairs.BTCUSD.enable) {
-  const pairBtcUsd = new LiveTradingPair(CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
+  const pairBtcUsd =
+    new LiveTradingPair(exchange, CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
   pairBtcUsd.subscribe(observerCallback);
 }
 if (config.pairs.ETHUSD.enable) {
-  const pairEthUsd = new LiveTradingPair(CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
+  const pairEthUsd =
+    new LiveTradingPair(exchange, CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
   pairEthUsd.subscribe(observerCallback);
 }
 
