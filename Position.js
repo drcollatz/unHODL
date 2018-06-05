@@ -1,4 +1,4 @@
-const config = require('./config');
+const config = require('./conf/config');
 
 module.exports = class Position {
   constructor(pair, type, amount, orderPrice, takeProfitPerc, stopLossPerc, doTrailing) {

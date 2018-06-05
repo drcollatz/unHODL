@@ -15,7 +15,7 @@ This is a high frequency trading bot based on strong market trends, margin and l
 
 - `docker build -t drcollatz/unhodl .`
 - or for production environment: `docker build --build-arg buildmode="--only=prod" -t drcollatz/unhodl .`
-- `docker run drcollatz/unhodl`
+- `docker run -v /data/unhodl:/app/conf drcollatz/unhodl`
 
 # Configuration
 
