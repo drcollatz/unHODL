@@ -38,5 +38,7 @@ config.pairs.ETHUSD.trailing = true;
 
 config.trading.takeProfitPerc = 0.4;
 config.trading.stopLossPerc = 1;
+config.trading.startBalance = 1000;
+config.trading.margin = 3.3;
 
 module.exports = config;
