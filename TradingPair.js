@@ -1,5 +1,5 @@
 
-const config = require('./config');
+const config = require('./conf/config');
 const RSI = require('./RSI.js');
 const Position = require('./Position.js');
 

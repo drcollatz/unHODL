@@ -1,6 +1,6 @@
 process.env.NTBA_FIX_319 = 1; // needed for telegram issue
 
-const config = require('./config');
+const config = require('./conf/config');
 const Exchange = require('./Exchange.js');
 
 const TelegramConnector = require('./TelegramConnector.js');

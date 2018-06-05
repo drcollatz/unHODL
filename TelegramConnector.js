@@ -1,5 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
-const config = require('./config.js');
+const config = require('./conf/config.js');
 const LiveTradingPair = require('./Exchange.js');
 const Balance = require('./Balance');
 
