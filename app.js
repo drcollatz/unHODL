@@ -4,14 +4,14 @@ const config = require('./conf/config');
 const Exchange = require('./Exchange.js');
 
 const TelegramConnector = require('./TelegramConnector.js');
-const LiveTradingPair = require('./TradingPair.js');
+const TradingPair = require('./TradingPair.js');
 
 const CANDLE_KEY_EOS_USD = 'trade:1m:tEOSUSD';
 const CANDLE_KEY_BTC_USD = 'trade:1m:tBTCUSD';
 const CANDLE_KEY_ETH_USD = 'trade:1m:tETHUSD';
 
 TelegramConnector.initBot();
-TelegramConnector.sendToChat('*unHODL Bot* started...');
+TelegramConnector.sendToChat('*unHODL* Bot started...');
 
 /**
  *
@@ -22,12 +22,12 @@ function observerCallback(data) {
   const time = new Date().toLocaleTimeString();
   if (data.get('key') === 'newPos') {
     // const context = data.get('context');
-    const msg = `* ${time} - Position opened:*\n${data.get('pos').toString()}`;
+    const msg = `* ${time} - Position opened: *\n${data.get('pos').toString()}`;
     TelegramConnector.sendToChat(msg);
     console.log(msg);
   } else if (data.get('key') === 'closedPos') {
     // const context = data.get('context');
-    const msg = `${time} - Position closed: \n${data.get('pos').toString()}`;
+    const msg = `* ${time} - Position closed: *\n${data.get('pos').toString()}`;
     TelegramConnector.sendToChat(msg);
     console.log(msg);
   }
@@ -38,17 +38,17 @@ const exchange = new Exchange(config.bitfinex.key, config.bitfinex.secret);
 
 if (config.pairs.EOSUSD.enable) {
   const pairEosUsd =
-    new LiveTradingPair(exchange, CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.trailing);
+    new TradingPair(exchange, CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.trailing);
   pairEosUsd.subscribe(observerCallback);
 }
 if (config.pairs.BTCUSD.enable) {
   const pairBtcUsd =
-    new LiveTradingPair(exchange, CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
+    new TradingPair(exchange, CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
   pairBtcUsd.subscribe(observerCallback);
 }
 if (config.pairs.ETHUSD.enable) {
   const pairEthUsd =
-    new LiveTradingPair(exchange, CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
+    new TradingPair(exchange, CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
   pairEthUsd.subscribe(observerCallback);
 }
 

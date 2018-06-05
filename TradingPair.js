@@ -3,7 +3,7 @@ const config = require('./conf/config');
 const RSI = require('./RSI.js');
 const Position = require('./Position.js');
 
-module.exports = class LiveTradingPair {
+module.exports = class TradingPair {
   /**
  *
  *
@@ -19,7 +19,7 @@ module.exports = class LiveTradingPair {
         const msg = `${time} - ${this.toString()}, RSI: ${this.currentRSI.toFixed(3)} @ ${this.currentPrice.toFixed(3)}`;
         console.log(msg);
         this.checkMarketSituation();
-        if (this.activePosition != null) {       
+        if (this.activePosition != null) {
           this.activePosition.update();
         }
       }
@@ -27,8 +27,8 @@ module.exports = class LiveTradingPair {
   }
   constructor(exchange, candleKey, trailing) {
     // create array for all instanced pairs
-    if (LiveTradingPair.activePairs == null) {
-      LiveTradingPair.activePairs = [];
+    if (TradingPair.activePairs == null) {
+      TradingPair.activePairs = [];
     }
 
     this.currentPrice = 0;
@@ -46,7 +46,7 @@ module.exports = class LiveTradingPair {
     this.exchange = exchange;
     if (exchange != null) {
       this.exchange.registerTradingPair(this, this.observerCallback.bind(this));
-      LiveTradingPair.activePairs.push(this);
+      TradingPair.activePairs.push(this);
     }
   }
 
@@ -113,23 +113,23 @@ module.exports = class LiveTradingPair {
   checkMarketSituation() {
     if (
       this.activePosition == null &&
-        this.blockOpeningNewPosition &&
-        (this.currentRSI < config.indicators.rsi.longValue &&
-          this.currentRSI > config.indicators.rsi.shortValue)
+      this.blockOpeningNewPosition &&
+      (this.currentRSI < config.indicators.rsi.longValue &&
+        this.currentRSI > config.indicators.rsi.shortValue)
     ) {
       this.blockOpeningNewPosition = false;
     }
 
     if (
       this.currentRSI >= config.indicators.rsi.longValue &&
-        this.activePosition == null &&
-        !this.blockOpeningNewPosition
+      this.activePosition == null &&
+      !this.blockOpeningNewPosition
     ) {
       // open long position
       const newPos = new Position(
         this,
-        'long',
-        0.1,
+        'LONG',
+        (config.trading.startBalance / this.currentPrice) * config.trading.margin,
         this.currentPrice,
         config.trading.takeProfitPerc,
         config.trading.stopLossPerc,
@@ -146,14 +146,14 @@ module.exports = class LiveTradingPair {
       this.broadcast(map);
     } else if (
       this.currentRSI <= config.indicators.rsi.shortValue &&
-        this.activePosition == null &&
-        !this.blockOpeningNewPosition
+      this.activePosition == null &&
+      !this.blockOpeningNewPosition
     ) {
       // open short position
       const newPos = new Position(
         this,
-        'short',
-        0.1,
+        'SHORT',
+        (config.trading.startBalance / this.currentPrice) * config.trading.margin,
         this.currentPrice,
         config.trading.takeProfitPerc,
         config.trading.stopLossPerc,

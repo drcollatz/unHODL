@@ -1,6 +1,4 @@
 const BFX = require('bitfinex-api-node');
-const config = require('./conf/config');
-
 
 let instance = null;
 

@@ -10,7 +10,7 @@ WORKDIR /app
 RUN apk add -U tzdata && \
     cp /usr/share/zoneinfo/Europe/Berlin /etc/localtime
 USER node
-COPY --from=builder --chown=node:node /usr/src/app /app
+COPY --from=builder /usr/src/app /app
 VOLUME /app/conf
 CMD [ "npm", "start" ]
 
