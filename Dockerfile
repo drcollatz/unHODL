@@ -1,5 +1,6 @@
 FROM node:alpine
 
+ARG buildmode=
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -12,11 +13,10 @@ RUN apk add -U tzdata && \
 # where available (npm@5+)
 COPY package*.json ./
 
-RUN npm install
-# If you are building your code for production
-# RUN npm install --only=production
+RUN npm install $buildmode
 
 # Bundle app source
 COPY . .
 
 CMD [ "npm", "start" ]
+

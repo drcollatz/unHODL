@@ -14,6 +14,7 @@ This is a high frequency trading bot based on strong market trends, margin and l
 # Docker (optional)
 
 - `docker build -t drcollatz/unhodl .`
+- or for production environment: `docker build --build-arg buildmode="--only=prod" -t drcollatz/unhodl .`
 - `docker run drcollatz/unhodl`
 
 # Configuration
@@ -41,3 +42,4 @@ This is a high frequency trading bot based on strong market trends, margin and l
 - opkg update
 - opkg install git
 - opkg install git-http
+
