@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const config = require('./conf/config.js');
-const LiveTradingPair = require('./Exchange.js');
+const TradingPair = require('./TradingPair.js').TradingPair;
 const Balance = require('./Balance');
 
 let bot;
@@ -29,7 +29,7 @@ module.exports = {
     });
 
     bot.onText(/\/pos/, () => {
-      LiveTradingPair.activePairs.forEach((pair) => {
+      TradingPair.activePairs.forEach((pair) => {
         if (pair.activePosition != null) {
           bot.sendMessage(
             config.telegram.chat,
@@ -45,7 +45,7 @@ module.exports = {
     });
 
     bot.onText(/\/price/, () => {
-      LiveTradingPair.activePairs.forEach(pair =>
+      TradingPair.activePairs.forEach(pair =>
         bot.sendMessage(
           config.telegram.chat,
           `Pair: ${pair.candleKey} - Current price: ${pair.currentPrice}`,
