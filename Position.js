@@ -1,4 +1,4 @@
-const config = require('./config');
+const config = require('./conf/config');
 
 
 const PositionType = {
@@ -14,10 +14,10 @@ module.exports.Position = class Position {
     this.amount = amount;
     this.orderPrice = orderPrice;
 
-    if (this.type === 'long') {
+    if (this.type === 'LONG') {
       this.takeProfitPrice = (this.orderPrice * (1 + (takeProfitPerc / 100)));
       this.stopLossPrice = (this.orderPrice * (1 - (stopLossPerc / 100)));
-    } else if (this.type === 'short') {
+    } else if (this.type === 'SHORT') {
       this.takeProfitPrice = (this.orderPrice * (1 - (takeProfitPerc / 100)));
       this.stopLossPrice = (this.orderPrice * (1 + (stopLossPerc / 100)));
     }
@@ -28,7 +28,7 @@ module.exports.Position = class Position {
     this.profit = 0;
   }
   toString() {
-    const close = (this.closingPrice) ? `closed @ : ${this.closingPrice}\n` : '';
+    const close = (this.closingPrice) ? `closed @ ${this.closingPrice}\n` : '';
     const profit = (this.profit) ? `Profit: ${this.profit.toFixed(2)}\n` : '';
     const trailing = (this.doTrailing) ? 'Trailing is active\n' : '';
     const ret = `${close}${this.type} on ${this.pair}\nopen = ${this.orderPrice}\nAmount = ${(this.amount).toFixed(3)}\nRSI = ${this.pair.currentRSI}\nTP = ${(this.takeProfitPrice).toFixed(3)}\nSL = ${(this.stopLossPrice).toFixed(3)}\n${profit}${trailing}`;
@@ -42,7 +42,7 @@ module.exports.Position = class Position {
   close() {
     // Calc profit in % for now, calc profit for short as positive
     this.profit = ((this.pair.currentPrice - this.orderPrice) / this.orderPrice) * 100;
-    if (this.type === 'short') {
+    if (this.type === 'SHORT') {
       this.profit *= -1;
     }
     this.closingPrice = this.pair.currentPrice;
@@ -67,10 +67,10 @@ module.exports.Position = class Position {
   checkClosing() {
     let ret = false;
     if (
-      (this.type === 'long' &&
+      (this.type === 'LONG' &&
         (this.pair.currentPrice >= this.takeProfitPrice ||
           this.pair.currentPrice <= this.stopLossPrice)) ||
-      (this.type === 'short' &&
+      (this.type === 'SHORT' &&
         (this.pair.currentPrice <= this.takeProfitPrice ||
           this.pair.currentPrice >= this.stopLossPrice))
     ) {
@@ -83,14 +83,14 @@ module.exports.Position = class Position {
    * Trailing of stop loss limit if profit increase
    */
   updateStopLoss() {
-    if (this.type === 'long' && this.pair.currentPrice > this.stopLossBasePrice) {
+    if (this.type === 'LONG' && this.pair.currentPrice > this.stopLossBasePrice) {
       this.stopLossPrice = (
         this.pair.currentPrice *
         (1 - (config.trading.stopLossPerc / 100))
       );
       this.stopLossBasePrice = this.pair.currentPrice;
       console.log(`Stop Loss updated to: ${(this.stopLossPrice).toFixed(3)}`);
-    } else if (this.type === 'short' && this.pair.currentPrice < this.stopLossBasePrice) {
+    } else if (this.type === 'SHORT' && this.pair.currentPrice < this.stopLossBasePrice) {
       this.stopLossPrice = (
         this.pair.currentPrice *
         (1 + (config.trading.stopLossPerc / 100))
@@ -104,12 +104,12 @@ module.exports.Position = class Position {
    * Trailing of take profit limit increase
    */
   updateTakeProfit() {
-    if (this.type === 'long' && this.pair.currentPrice > this.takeProfitBasePrice) {
+    if (this.type === 'LONG' && this.pair.currentPrice > this.takeProfitBasePrice) {
       this.takeProfitPrice = (this.pair.currentPrice *
         (1 + (this.takeProfitPerc / 100)));
       this.takeProfitBasePrice = this.pair.currentPrice;
       console.log(`Take profit updated to: ${this.takeProfitPrice}`);
-    } else if (this.type === 'short' && this.pair.currentPrice < this.takeProfitBasePrice) {
+    } else if (this.type === 'SHORT' && this.pair.currentPrice < this.takeProfitBasePrice) {
       this.takeProfitPrice = (this.pair.currentPrice *
         (1 - (this.takeProfitPerc / 100)));
       this.takeProfitBasePrice = this.pair.currentPrice;

@@ -1,22 +1,16 @@
-FROM node:alpine
-
-
-# Create app directory
+FROM node:alpine as builder
 WORKDIR /usr/src/app
+COPY . .
+ARG buildmode=
+RUN npm install $buildmode
 
+
+FROM node:alpine
+WORKDIR /app
 RUN apk add -U tzdata && \
     cp /usr/share/zoneinfo/Europe/Berlin /etc/localtime
-
-# Install app dependencies
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
-# where available (npm@5+)
-COPY package*.json ./
-
-RUN npm install
-# If you are building your code for production
-# RUN npm install --only=production
-
-# Bundle app source
-COPY . .
-
+USER node
+COPY --from=builder /usr/src/app /app
+VOLUME /app/conf
 CMD [ "npm", "start" ]
+

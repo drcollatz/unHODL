@@ -63,4 +63,4 @@ typings/
 .DS_Store
 
 # config.js
-config.js
+conf/config.js

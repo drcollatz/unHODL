@@ -1,4 +1,4 @@
-const config = require('./config');
+const config = require('./conf/config');
 const BFX = require('bitfinex-api-node');
 
 module.exports = class Balance {
