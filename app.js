@@ -1,8 +1,7 @@
-const TradingPair = require('./TradingPair.js').TradingPair;
-const TradeTrigger = require('./TradeTrigger.js').TradeTrigger;
-const Condition = require('./TradeTrigger.js').Condition;
-const Indicator = require('./Indicator.js').Indicator;
-const PositionType = require('./Position.js').PositionType;
+const { TradingPair } = require('./TradingPair.js');
+const { TradeTrigger, Condition } = require('./TradeTrigger.js');
+const { Indicator } = require('./Indicator.js');
+const { PositionType } = require('./Position.js');
 
 // import LiveTradingPair from './TradingPair';
 
@@ -26,17 +25,11 @@ TelegramConnector.sendToChat('*unHODL* Bot started...');
  * @param {*} data
  */
 function observerCallback(data) {
-  const time = new Date().toLocaleTimeString();
-  if (data.get('key') === 'newPos') {
-    // const context = data.get('context');
-    const msg = `* ${time} - Position opened: *\n${data.get('pos').toString()}`;
+  if ((data.get('key') === 'newPos') || (data.get('key') === 'closedPos')) {
+    const msg = `*Position:*\n${data.get('pos').toString()}`;
     TelegramConnector.sendToChat(msg);
-    console.log(msg);
-  } else if (data.get('key') === 'closedPos') {
-    // const context = data.get('context');
-    const msg = `* ${time} - Position closed: *\n${data.get('pos').toString()}`;
-    TelegramConnector.sendToChat(msg);
-    console.log(msg);
+    const time = new Date().toLocaleTimeString();
+    console.log(`${time} - ${msg}`);
   }
 }
 

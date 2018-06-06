@@ -28,11 +28,12 @@ module.exports.Position = class Position {
     this.profit = 0;
   }
   toString() {
-    const close = (this.closingPrice) ? `closed @ ${this.closingPrice}\n` : '';
-    const profit = (this.profit) ? `Profit: ${this.profit.toFixed(2)}\n` : '';
-    const trailing = (this.doTrailing) ? 'Trailing is active\n' : '';
-    const ret = `${close}${this.type} on ${this.pair}\nopen = ${this.orderPrice}\nAmount = ${(this.amount).toFixed(3)}\nRSI = ${this.pair.currentRSI}\nTP = ${(this.takeProfitPrice).toFixed(3)}\nSL = ${(this.stopLossPrice).toFixed(3)}\n${profit}${trailing}`;
-    return ret;
+    const closeResult = (this.profit > 0) ? 'WON' : 'LOST';
+    const trailing = (this.doTrailing) ? 'ON' : 'OFF';
+    const stats = `Amount = ${(this.amount).toFixed(3)}\nRSI = ${this.pair.currentRSI}\nTP = ${(this.takeProfitPrice).toFixed(3)}\nSL = ${(this.stopLossPrice).toFixed(3)}\nTrailing: ${trailing}`;
+    const close = `${this.pair}, ${this.type} closed @ ${this.closingPrice} (${(this.profit).toFixed(2)} %) ${closeResult}\n-----------------------------------\n${stats}`;
+    const open = `${this.pair}, ${this.type} opened @ ${this.orderPrice}\n------------------------------\n${stats}`;
+    return this.closingPrice ? close : open;
   }
 
   open() {
