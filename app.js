@@ -39,8 +39,8 @@ const exchange = new Exchange(config.bitfinex.key, config.bitfinex.secret);
 if (config.pairs.EOSUSD.enable) {
   const pairEosUsd =
     new TradingPair(exchange, CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.trailing);
-  const rsiConditionRise = new Condition(70, true, false, Indicator.RSI, pairEosUsd);
-  const rsiConditionFall = new Condition(30, false, true, Indicator.RSI, pairEosUsd);
+  const rsiConditionRise = new Condition(config.pairs.EOSUSD.rsiLongValue, true, false, Indicator.RSI, pairEosUsd);
+  const rsiConditionFall = new Condition(config.pairs.EOSUSD.rsiShortValue, false, true, Indicator.RSI, pairEosUsd);
   const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
   const tradeTriggerRsiShort = new TradeTrigger(rsiConditionFall, PositionType.SHORT);
 
@@ -51,8 +51,8 @@ if (config.pairs.EOSUSD.enable) {
 if (config.pairs.BTCUSD.enable) {
   const pairBtcUsd =
     new TradingPair(exchange, CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
-  const rsiConditionRise = new Condition(70, true, false, Indicator.RSI, pairBtcUsd);
-  const rsiConditionFall = new Condition(30, false, true, Indicator.RSI, pairBtcUsd);
+  const rsiConditionRise = new Condition(config.pairs.BTCUSD.rsiLongValue, true, false, Indicator.RSI, pairBtcUsd);
+  const rsiConditionFall = new Condition(config.pairs.BTCUSD.rsiShortValue, false, true, Indicator.RSI, pairBtcUsd);
   const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
   const tradeTriggerRsiShort = new TradeTrigger(rsiConditionFall, PositionType.SHORT);
 
@@ -63,8 +63,8 @@ if (config.pairs.BTCUSD.enable) {
 if (config.pairs.ETHUSD.enable) {
   const pairEthUsd =
     new TradingPair(exchange, CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
-  const rsiConditionRise = new Condition(70, true, false, Indicator.RSI, pairEthUsd);
-  const rsiConditionFall = new Condition(30, false, true, Indicator.RSI, pairEthUsd);
+  const rsiConditionRise = new Condition(config.pairs.ETHUSD.rsiLongValue, true, false, Indicator.RSI, pairEthUsd);
+  const rsiConditionFall = new Condition(config.pairs.ETHUSD.rsiShortValue, false, true, Indicator.RSI, pairEthUsd);
   const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
   const tradeTriggerRsiShort = new TradeTrigger(rsiConditionFall, PositionType.SHORT);
 
