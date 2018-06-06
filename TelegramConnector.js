@@ -31,9 +31,11 @@ module.exports = {
     bot.onText(/\/pos/, () => {
       TradingPair.activePairs.forEach((pair) => {
         if (pair.activePosition != null) {
+          const msg = pair.activePosition.toString();
           bot.sendMessage(
             config.telegram.chat,
-            `Pair: ${pair.candleKey} - Current pos: ${pair.activePosition.toString()}`,
+            msg,
+            { parse_mode: 'Markdown' },
           );
         } else {
           bot.sendMessage(
