@@ -1,6 +1,5 @@
 const config = require('./conf/config');
 
-
 const PositionType = {
   LONG: 0,
   SHORT: 1,
@@ -34,11 +33,22 @@ module.exports.Position = class Position {
   }
   toString() {
     const posType = this.type === PositionType.SHORT ? 'SHORT' : 'LONG';
-    const closeResult = (this.profit > 0) ? '\u{1F3C6}' : '\u{1F62C}';
+    const closeResult = (this.profit > 0) ? '\u{1F44D}' : '\u{1F44E}';
     const trailing = (this.doTrailing) ? 'ON' : 'OFF';
-    const stats = `\`Amount   = ${(this.amount).toFixed(3)} \`\`${this.pair} \`\n\`RSI      = ${this.pair.currentRSI}\`\n\`TP       = ${(this.takeProfitPrice).toFixed(3)}\`\` USD\`\n\`SL       = ${(this.stopLossPrice).toFixed(3)}\`\` USD\`\n\`Trailing = ${trailing}\``;
-    const close = `${this.pair}, ${posType} closed @ ${this.closingPrice.toFixed(3)} USD (${(this.profit).toFixed(2)} %) ${closeResult}\n\`-------------------------------------\`\n${stats}`;
-    const open = `${this.pair}, ${posType} opened @ ${this.orderPrice.toFixed(3)} USD \u{1F195}\n\`----------------------------\`\n${stats}`;
+
+    const stats = `\`Amount   = ${(this.amount).toFixed(3)} ${this.pair}\
+                   \nRSI      = ${this.pair.currentRSI}\
+                   \nTP       = ${(this.takeProfitPrice).toFixed(3)} USD\
+                   \nSL       = ${(this.stopLossPrice).toFixed(3)} USD\
+                   \nTrailing = ${trailing}\
+                   \nBalance  = ${(this.pair.exchange.currentBalance).toFixed(2)} USD\
+                   \nTrades   = ${this.pair.exchange.tradeCounterWin} \u{1F44D} / ${this.pair.exchange.tradeCounterLost} \u{1F44E}\``;
+
+    const close = `${posType} closed @ ${this.closingPrice.toFixed(3)} USD (${(this.profit).toFixed(2)} %) ${closeResult}\
+                   \n\`----------------------\`\n${stats}`;
+
+    const open = `${posType} opened @ ${this.orderPrice.toFixed(3)} USD \u{1F195}\
+                   \n\`----------------------\`\n${stats}`;
     return this.closingPrice ? close : open;
   }
 
@@ -52,7 +62,13 @@ module.exports.Position = class Position {
     if (this.type === PositionType.SHORT) {
       this.profit *= -1;
     }
+    this.pair.exchange.currentBalance *= 1 + (this.profit / 100);
     this.closingPrice = this.pair.currentPrice;
+    if (this.profit > 0) {
+      this.pair.exchange.tradeCounterWin += 1;
+    } else {
+      this.pair.exchange.tradeCounterLost += 1;
+    }
   }
 
   update() {
