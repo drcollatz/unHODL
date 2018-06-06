@@ -8,11 +8,12 @@ module.exports.Condition = class Condition {
     this.risingEdge = risingEdge;
     this.fallingEdge = fallingEdge;
     this.pair = pair;
+    this.blocked = false;
 
     if (this.indicator >= Indicator.MAXINDICATOR) {
       throw Promise.reject(new Error('Indicator not known!'));
     }
-    if ((fallingEdge && risingEdge) || (fallingEdge && risingEdge)) {
+    if ((fallingEdge && risingEdge) || (!fallingEdge && !risingEdge)) {
       throw Promise.reject(new Error('Illegal condition!'));
     }
   }

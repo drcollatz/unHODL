@@ -22,10 +22,27 @@ module.exports.TradingPair = class TradingPair {
         this.currentRSI = this.indicators[Indicator.RSI];
         const msg = `${time} - ${this.toString()}, RSI: ${this.indicators[Indicator.RSI].toFixed(3)} @ ${this.currentPrice.toFixed(3)}`;
         console.log(msg);
-        this.checkMarketSituation();
+        // this.checkMarketSituation();
         this.tradeTriggers.forEach((tradeTrigger) => {
           if (tradeTrigger.checkTrigger()) {
             console.log('Condition is true!');
+            if (this.activePosition == null) {
+              this.activePosition = new Position(
+                this,
+                tradeTrigger.positionType,
+                (config.trading.startBalance / this.currentPrice) * config.trading.margin,
+                this.currentPrice,
+                config.trading.takeProfitPerc,
+                config.trading.stopLossPerc,
+                this.trailing,
+              );
+              this.activePosition.open();
+              const map = new Map();
+              map.set('key', 'newPos');
+              map.set('context', this);
+              map.set('pos', this.activePosition);
+              this.broadcast(map);
+            }
           }
         });
         if (this.activePosition != null) {
