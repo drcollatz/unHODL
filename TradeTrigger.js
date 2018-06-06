@@ -1,5 +1,4 @@
-const LiveTradingPair = require('./TradingPair.js').LiveTradingPair;
-const Indicator = require('./Indicator.js').Indicator;
+const { Indicator } = require('./Indicator.js');
 
 module.exports.Condition = class Condition {
   constructor(threshold, risingEdge, fallingEdge, indicator, pair) {

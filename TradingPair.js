@@ -1,10 +1,8 @@
 
 const config = require('./conf/config');
-const RSI = require('./RSI.js');
-const Position = require('./Position.js').Position;
-const Indicator = require('./Indicator.js').Indicator;
-const TradeTrigger = require('./TradeTrigger.js').TradeTrigger;
-
+const RSI = require('./indicators/RSI');
+const { Position } = require('./Position');
+const { Indicator } = require('./Indicator');
 
 module.exports.TradingPair = class TradingPair {
   /**
