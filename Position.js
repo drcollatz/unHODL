@@ -139,12 +139,12 @@ module.exports.Position = class Position {
       this.takeProfitPrice = (this.pair.currentPrice *
         (1 + (this.takeProfitPerc / 100)));
       this.takeProfitBasePrice = this.pair.currentPrice;
-      console.log(`Take profit updated to: ${this.takeProfitPrice}`);
+      console.log(`Take profit updated to: ${this.takeProfitPrice.toFixed(3)}`);
     } else if (this.type === PositionType.SHORT && this.pair.currentPrice < this.takeProfitBasePrice) {
       this.takeProfitPrice = (this.pair.currentPrice *
         (1 - (this.takeProfitPerc / 100)));
       this.takeProfitBasePrice = this.pair.currentPrice;
-      console.log(`Take profit updated to: ${this.takeProfitPrice}`);
+      console.log(`Take profit updated to: ${this.takeProfitPrice.toFixed(3)}`);
     }
   }
 };
