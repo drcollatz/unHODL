@@ -12,9 +12,14 @@ const Exchange = require('./Exchange.js');
 
 const TelegramConnector = require('./TelegramConnector.js');
 
-const CANDLE_KEY_EOS_USD = 'trade:1m:tEOSUSD';
-const CANDLE_KEY_BTC_USD = 'trade:1m:tBTCUSD';
-const CANDLE_KEY_ETH_USD = 'trade:1m:tETHUSD';
+const CANDLE_KEY_EOS_USD_1M = 'trade:1m:tEOSUSD';
+const CANDLE_KEY_EOS_USD_5M = 'trade:5m:tEOSUSD';
+
+const CANDLE_KEY_BTC_USD_1M = 'trade:1m:tBTCUSD';
+const CANDLE_KEY_BTC_USD_5M = 'trade:5m:tBTCUSD';
+
+const CANDLE_KEY_ETH_USD_1M = 'trade:1m:tETHUSD';
+const CANDLE_KEY_ETH_USD_5M = 'trade:5m:tETHUSD';
 
 TelegramConnector.initBot();
 TelegramConnector.sendToChat('*unHODL* Bot started... \u{1F911}');
@@ -37,8 +42,12 @@ const exchange = new Exchange(config.bitfinex.key, config.bitfinex.secret, confi
 
 
 if (config.pairs.EOSUSD.enable) {
+  const indicatorMap = new Map();
+  indicatorMap.set(Indicator.RSI, CANDLE_KEY_EOS_USD_1M);
+  indicatorMap.set(Indicator.ADX, CANDLE_KEY_EOS_USD_5M);
   const pairEosUsd =
-    new TradingPair(exchange, CANDLE_KEY_EOS_USD, config.pairs.EOSUSD.trailing);
+    new TradingPair(exchange, indicatorMap, config.pairs.EOSUSD.trailing);
+
   const rsiConditionRise = new Condition(config.pairs.EOSUSD.rsiLongValue, true, false, Indicator.RSI, pairEosUsd);
   const rsiConditionFall = new Condition(config.pairs.EOSUSD.rsiShortValue, false, true, Indicator.RSI, pairEosUsd);
   const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
@@ -47,10 +56,17 @@ if (config.pairs.EOSUSD.enable) {
   pairEosUsd.addTrigger(tradeTriggerRsiLong);
   pairEosUsd.addTrigger(tradeTriggerRsiShort);
   pairEosUsd.subscribe(observerCallback);
+
+  pairEosUsd.goLive();
 }
 if (config.pairs.BTCUSD.enable) {
+  const indicatorMap = new Map();
+  indicatorMap.set(Indicator.RSI, CANDLE_KEY_BTC_USD_1M);
+  indicatorMap.set(Indicator.ADX, CANDLE_KEY_BTC_USD_5M);
+
   const pairBtcUsd =
-    new TradingPair(exchange, CANDLE_KEY_BTC_USD, config.pairs.BTCUSD.trailing);
+    new TradingPair(exchange, indicatorMap, config.pairs.BTCUSD.trailing);
+
   const rsiConditionRise = new Condition(config.pairs.BTCUSD.rsiLongValue, true, false, Indicator.RSI, pairBtcUsd);
   const rsiConditionFall = new Condition(config.pairs.BTCUSD.rsiShortValue, false, true, Indicator.RSI, pairBtcUsd);
   const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
@@ -59,10 +75,17 @@ if (config.pairs.BTCUSD.enable) {
   pairBtcUsd.addTrigger(tradeTriggerRsiLong);
   pairBtcUsd.addTrigger(tradeTriggerRsiShort);
   pairBtcUsd.subscribe(observerCallback);
+
+  pairBtcUsd.goLive();
 }
 if (config.pairs.ETHUSD.enable) {
+  const indicatorMap = new Map();
+  indicatorMap.set(Indicator.RSI, CANDLE_KEY_ETH_USD_1M);
+  indicatorMap.set(Indicator.ADX, CANDLE_KEY_ETH_USD_5M);
+
   const pairEthUsd =
-    new TradingPair(exchange, CANDLE_KEY_ETH_USD, config.pairs.ETHUSD.trailing);
+    new TradingPair(exchange, indicatorMap, config.pairs.ETHUSD.trailing);
+
   const rsiConditionRise = new Condition(config.pairs.ETHUSD.rsiLongValue, true, false, Indicator.RSI, pairEthUsd);
   const rsiConditionFall = new Condition(config.pairs.ETHUSD.rsiShortValue, false, true, Indicator.RSI, pairEthUsd);
   const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
@@ -71,6 +94,8 @@ if (config.pairs.ETHUSD.enable) {
   pairEthUsd.addTrigger(tradeTriggerRsiLong);
   pairEthUsd.addTrigger(tradeTriggerRsiShort);
   pairEthUsd.subscribe(observerCallback);
+
+  pairEthUsd.goLive();
 }
 
 // Testing Area ---------------------------

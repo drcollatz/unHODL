@@ -50,7 +50,7 @@ module.exports = {
       TradingPair.activePairs.forEach(pair =>
         bot.sendMessage(
           config.telegram.chat,
-          `Pair: ${pair.candleKey} - Current price: ${pair.currentPrice}`,
+          `Coin: ${pair.coin} - Current price: ${pair.currentPrice}`,
         ));
     });
 

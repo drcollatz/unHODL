@@ -19,6 +19,10 @@ module.exports.Condition = class Condition {
 
   isTrue() {
     const indicatorValue = this.pair.getValueForIndicator(this.indicator);
+    if (indicatorValue === 0) {
+      // return false, to avoid order execution on startup, if indicator value is 0 -> zero initialized !
+      return false;
+    }
     if (this.fallingEdge) {
       if (!this.blocked && indicatorValue < this.threshold) {
         this.blocked = true;

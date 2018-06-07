@@ -1,5 +1,4 @@
 const config = require('./conf/config');
-const RSI = require('./indicators/RSI');
 const { Position } = require('./Position');
 const { Indicator } = require('./Indicator');
 
@@ -14,16 +13,29 @@ module.exports.TradingPair = class TradingPair {
     if (data.get('key') === 'candleUpdate') {
       const candles = data.get('candles');
       if (candles != null) {
-        this.currentPrice = candles[0].close; // current candle close is more accurate then ticker
-        this.indicators[Indicator.RSI] = RSI.rsiCalculation(candles.map(x => x.close).reverse());
+        this.indicatorMap.forEach((candleKey, indicator) => {
+          if (candleKey === data.get('candleKey')) {
+            this.indicators[indicator] = Indicator.calc(indicator, candles);
+          }
+        });
+
         this.currentRSI = this.indicators[Indicator.RSI];
-        const msg = `${time} - ${this.toString()}, RSI: ${this.indicators[Indicator.RSI].toFixed(3)} @ ${this.currentPrice.toFixed(3)}`;
-        console.log(msg);
+        const interval = data.get('candleKey').slice(6, 7);
+        if (interval === '1') {
+          this.currentPrice = candles[0].close; // current candle (1m interval) close is more accurate then ticker
+        }
+        const strTime = `${time} - Candle interval: ${interval} of ${this.toString()},`;
+        let strIndicator = '';
+        this.indicatorMap.forEach((candleKey, indicator) => {
+          strIndicator += ` | ${Indicator.toString(indicator)}: ${this.indicators[indicator].toFixed(3)}`;
+        });
+        const strPrice = ` @ ${this.currentPrice.toFixed(3)} USD`;
+        console.log(strTime + strIndicator + strPrice);
         // this.checkMarketSituation();
         this.tradeTriggers.forEach((tradeTrigger) => {
           if (tradeTrigger.checkTrigger()) {
             console.log('Condition is true!');
-            if (this.activePosition == null) {
+            if (this.activePosition == null && this.currentPrice !== 0) {
               this.activePosition = new Position(
                 this,
                 tradeTrigger.positionType,
@@ -48,7 +60,7 @@ module.exports.TradingPair = class TradingPair {
       }
     }
   }
-  constructor(exchange, candleKey, trailing) {
+  constructor(exchange, indicatorMap, trailing) {
     // create array for all instanced pairs
     if (TradingPair.activePairs == null) {
       TradingPair.activePairs = [];
@@ -59,21 +71,39 @@ module.exports.TradingPair = class TradingPair {
     this.sumProfit = 0;
     this.indicators = [];
     this.tradeTriggers = [];
-
-    this.indicators[Indicator.RSI] = 0;
+    this.candleKeys = [];
+    this.coin = '';
 
     this.blockOpeningNewPosition = false;
-    this.candleKey = candleKey;
-    this.coin = candleKey.slice(-6, -3);
+
+    this.indicatorMap = indicatorMap;
+    this.indicatorMap.forEach((candleKey, indicator) => {
+      if (candleKey.includes(this.coin) || this.coin === '') {
+        this.candleKeys.push(candleKey);
+        if (this.coin === '') {
+          this.coin = candleKey.slice(-6, -3);
+        }
+      } else {
+        throw Promise.reject(new Error('Only a candlekey of the same coin can be added!'));
+      }
+
+      this.indicators[indicator] = 0;
+    });
+
     this.trailing = trailing;
 
     this.observers = [];
     this.activePosition = null;
 
     this.exchange = exchange;
-    if (exchange != null) {
+  }
+
+  goLive() {
+    if (this.exchange != null) {
       this.exchange.registerTradingPair(this, this.observerCallback.bind(this));
       TradingPair.activePairs.push(this);
+    } else {
+      throw Promise.reject(new Error('No Exchange object was prodived!'));
     }
   }
 
@@ -138,70 +168,6 @@ module.exports.TradingPair = class TradingPair {
     map.set('context', this);
     map.set('pos', closedPosition);
     this.broadcast(map);
-  }
-  /**
-     *
-     *
-     */
-  checkMarketSituation() {
-    if (
-      this.activePosition == null &&
-      this.blockOpeningNewPosition &&
-      (this.currentRSI < config.indicators.rsi.longValue &&
-        this.currentRSI > config.indicators.rsi.shortValue)
-    ) {
-      this.blockOpeningNewPosition = false;
-    }
-
-    if (
-      this.currentRSI >= config.indicators.rsi.longValue &&
-      this.activePosition == null &&
-      !this.blockOpeningNewPosition
-    ) {
-      // open long position
-      const newPos = new Position(
-        this,
-        'LONG',
-        (config.trading.startBalance / this.currentPrice) * config.trading.margin,
-        this.currentPrice,
-        config.trading.takeProfitPerc,
-        config.trading.stopLossPerc,
-        this.trailing,
-      );
-
-      this.activePosition = newPos;
-      this.blockOpeningNewPosition = true;
-      newPos.open();
-      const map = new Map();
-      map.set('key', 'newPos');
-      map.set('context', this);
-      map.set('pos', newPos);
-      this.broadcast(map);
-    } else if (
-      this.currentRSI <= config.indicators.rsi.shortValue &&
-      this.activePosition == null &&
-      !this.blockOpeningNewPosition
-    ) {
-      // open short position
-      const newPos = new Position(
-        this,
-        'SHORT',
-        (config.trading.startBalance / this.currentPrice) * config.trading.margin,
-        this.currentPrice,
-        config.trading.takeProfitPerc,
-        config.trading.stopLossPerc,
-        this.trailing,
-      );
-
-      this.activePosition = newPos;
-      this.blockOpeningNewPosition = true;
-      newPos.open();
-      const map = new Map();
-      map.set('key', 'newPos');
-      map.set('context', this);
-      map.set('pos', newPos);
-      this.broadcast(map);
-    }
   }
   /**
      * Fetches the positions data from exchange via REST

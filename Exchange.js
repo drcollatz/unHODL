@@ -45,19 +45,26 @@ module.exports = class Exchange {
 
       this.ws.on('open', () => {
         this.ws.auth.bind(this.ws);
-        this.ws.subscribeCandles(tradingPair.candleKey);
-        const msg = `Class ${this.constructor.name}: Websocket opened for ${tradingPair.candleKey}`;
-        console.log(msg);
+
+        tradingPair.candleKeys.forEach((candleKey) => {
+          this.ws.subscribeCandles(candleKey);
+          const msg = `Class ${this.constructor.name}: Websocket opened for ${candleKey}`;
+          console.log(msg);
+        });
       });
 
-      this.ws.onCandle({ key: tradingPair.candleKey }, (candles) => {
-        const map = new Map();
-        map.set('key', 'candleUpdate');
-        map.set('context', this);
-        map.set('candles', candles);
-        onCandleCallback(map);
-        // Database.savePriceToDb(this.currentPrice);
+      tradingPair.candleKeys.forEach((candleKey) => {
+        this.ws.onCandle({ key: candleKey }, (candles) => {
+          const map = new Map();
+          map.set('key', 'candleUpdate');
+          map.set('candleKey', candleKey);
+          map.set('context', this);
+          map.set('candles', candles);
+          onCandleCallback(map);
+          // Database.savePriceToDb(this.currentPrice);
+        });
       });
+
 
       this.ws.open().catch(() => {
         console.log(`Websocket ${this.ws.constructor.name} already opened -> Skipping...`);
