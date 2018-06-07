@@ -79,7 +79,9 @@ module.exports.TradingPair = class TradingPair {
     this.indicatorMap = indicatorMap;
     this.indicatorMap.forEach((candleKey, indicator) => {
       if (candleKey.includes(this.coin) || this.coin === '') {
-        this.candleKeys.push(candleKey);
+        if (this.candleKeys.indexOf(candleKey) === -1) {
+          this.candleKeys.push(candleKey);
+        }
         if (this.coin === '') {
           this.coin = candleKey.slice(-6, -3);
         }

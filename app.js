@@ -63,6 +63,7 @@ if (config.pairs.BTCUSD.enable) {
   const indicatorMap = new Map();
   indicatorMap.set(Indicator.RSI, CANDLE_KEY_BTC_USD_1M);
   indicatorMap.set(Indicator.ADX, CANDLE_KEY_BTC_USD_5M);
+  indicatorMap.set(Indicator.PSAR, CANDLE_KEY_BTC_USD_5M);
 
   const pairBtcUsd =
     new TradingPair(exchange, indicatorMap, config.pairs.BTCUSD.trailing);
