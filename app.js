@@ -33,7 +33,7 @@ function observerCallback(data) {
   }
 }
 
-const exchange = new Exchange(config.bitfinex.key, config.bitfinex.secret);
+const exchange = new Exchange(config.bitfinex.key, config.bitfinex.secret, config.trading.startBalance);
 
 
 if (config.pairs.EOSUSD.enable) {

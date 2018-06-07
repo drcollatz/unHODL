@@ -1,11 +1,13 @@
 const BFX = require('bitfinex-api-node');
 
 let instance = null;
-
 module.exports = class Exchange {
-  constructor(inApiKey, inApiSecret) {
+  constructor(inApiKey, inApiSecret, startBalance) {
     if (!instance) {
       instance = this;
+      this.currentBalance = startBalance;
+      this.tradeCounterWin = 0;
+      this.tradeCounterLost = 0;
 
       this.bfx = new BFX({
         apiKey: inApiKey,

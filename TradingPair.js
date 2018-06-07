@@ -1,4 +1,3 @@
-
 const config = require('./conf/config');
 const RSI = require('./indicators/RSI');
 const { Position } = require('./Position');
@@ -28,7 +27,7 @@ module.exports.TradingPair = class TradingPair {
               this.activePosition = new Position(
                 this,
                 tradeTrigger.positionType,
-                (config.trading.startBalance / this.currentPrice) * config.trading.margin,
+                (this.exchange.currentBalance / this.currentPrice) * config.trading.margin,
                 this.currentPrice,
                 config.trading.takeProfitPerc,
                 config.trading.stopLossPerc,
