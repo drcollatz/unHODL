@@ -1,15 +1,16 @@
 const { RSI } = require('technicalindicators');
 
 /**
- * Calculates the RSI indicator
- * @param {any} closeData
+ * Calculates the Relative Strength Index (RSI) indicator
+ * @param {any} candles
  */
-module.exports.rsiCalculation = (closeData) => {
-  const inputRSI = {
-    values: closeData,
+module.exports.rsiCalculation = (candles) => {
+  const input = {
+    values: candles.map(x => x.close).reverse(),
     period: 14,
   };
-  const rsiResultArray = RSI.calculate(inputRSI);
-  const currentRSI = rsiResultArray[rsiResultArray.length - 1];
-  return currentRSI;
+
+  const resultArray = RSI.calculate(input);
+  const currentValue = resultArray[resultArray.length - 1];
+  return currentValue;
 };
