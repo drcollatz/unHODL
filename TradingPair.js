@@ -1,5 +1,7 @@
 const config = require('./conf/config');
 const RSI = require('./indicators/RSI');
+const ADX = require('./indicators/ADX');
+const PSAR = require('./indicators/PSAR');
 const { Position } = require('./Position');
 const { Indicator } = require('./Indicator');
 
@@ -15,9 +17,15 @@ module.exports.TradingPair = class TradingPair {
       const candles = data.get('candles');
       if (candles != null) {
         this.currentPrice = candles[0].close; // current candle close is more accurate then ticker
-        this.indicators[Indicator.RSI] = RSI.rsiCalculation(candles.map(x => x.close).reverse());
+        this.indicators[Indicator.RSI] = RSI.rsiCalculation(candles);
+        this.indicators[Indicator.ADX] = ADX.adxCalculation(candles);
+        this.indicators[Indicator.PSAR] = PSAR.psarCalculation(candles);
         this.currentRSI = this.indicators[Indicator.RSI];
-        const msg = `${time} - ${this.toString()}, RSI: ${this.indicators[Indicator.RSI].toFixed(3)} @ ${this.currentPrice.toFixed(3)}`;
+        const msg = `${time} - ${this.toString()}, \
+RSI: ${this.indicators[Indicator.RSI].toFixed(2)}, \
+ADX: ${this.indicators[Indicator.ADX].toFixed(2)}, \
+SAR: ${this.indicators[Indicator.PSAR].toFixed(2)} \
+@ ${this.currentPrice.toFixed(3)} USD`;
         console.log(msg);
         // this.checkMarketSituation();
         this.tradeTriggers.forEach((tradeTrigger) => {

@@ -1,27 +1,18 @@
 const { ADX } = require('technicalindicators');
 
 /**
- * Calculates the ADX indicator
- * @param {any} close
- * @param {any} high
- * @param {any} low
+ * Calculates the Average Directional Index (ADX) indicator
+ * @param {any} candles
  */
-module.exports.adxCalculation = (close, high, low) => {
-  const inputADX = {
-    close,
-    high,
-    low,
+module.exports.adxCalculation = (candles) => {
+  const input = {
+    close: candles.map(x => x.close).reverse(),
+    high: candles.map(x => x.high).reverse(),
+    low: candles.map(x => x.low).reverse(),
     period: 14,
   };
-  const adxResultArray = ADX.calculate(inputADX);
-  const currentADX = adxResultArray[adxResultArray.length - 1];
-  return currentADX;
+
+  const resultArray = ADX.calculate(input).map(x => x.adx);
+  const currentValue = resultArray[resultArray.length - 1];
+  return currentValue;
 };
-
-/*
-const adx = new ADX({
-  period, high: input.high, low: input.low, close: input.close,
-});
-
-console.log(adx);
-*/
