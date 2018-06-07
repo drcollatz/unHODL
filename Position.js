@@ -18,6 +18,8 @@ module.exports.Position = class Position {
     this.amount = amount;
     this.orderPrice = orderPrice;
     this.closingPrice = 0;
+    this.takeProfitPerc = takeProfitPerc;
+    this.stopLossPerc = stopLossPerc;
 
     if (this.type === PositionType.LONG) {
       this.takeProfitPrice = (this.orderPrice * (1 + (takeProfitPerc / 100)));
@@ -63,7 +65,7 @@ module.exports.Position = class Position {
     }
 
     if (this.doTrailing) {
-    //  this.updateTakeProfit();
+      this.updateTakeProfit();
       this.updateStopLoss();
     }
   }
@@ -93,14 +95,14 @@ module.exports.Position = class Position {
     if (this.type === PositionType.LONG && this.pair.currentPrice > this.stopLossBasePrice) {
       this.stopLossPrice = (
         this.pair.currentPrice *
-        (1 - (config.trading.stopLossPerc / 100))
+        (1 - (this.stopLossPerc / 100))
       );
       this.stopLossBasePrice = this.pair.currentPrice;
       console.log(`Stop Loss updated to: ${(this.stopLossPrice).toFixed(3)}`);
     } else if (this.type === PositionType.SHORT && this.pair.currentPrice < this.stopLossBasePrice) {
       this.stopLossPrice = (
         this.pair.currentPrice *
-        (1 + (config.trading.stopLossPerc / 100))
+        (1 + (this.stopLossPerc / 100))
       );
       this.stopLossBasePrice = this.pair.currentPrice;
       console.log(`Stop Loss updated to: ${(this.stopLossPrice).toFixed(3)}`);
