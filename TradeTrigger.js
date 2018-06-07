@@ -17,6 +17,10 @@ module.exports.Condition = class Condition {
     }
   }
 
+  block() {
+    this.blocked = true;
+  }
+
   isTrue() {
     const indicatorValue = this.pair.getValueForIndicator(this.indicator);
     if (indicatorValue === 0) {
@@ -25,14 +29,12 @@ module.exports.Condition = class Condition {
     }
     if (this.fallingEdge) {
       if (!this.blocked && indicatorValue < this.threshold) {
-        this.blocked = true;
         return true;
       } else if (indicatorValue > this.threshold) {
         this.blocked = false;
       }
     } else if (this.risingEdge) {
       if (!this.blocked && indicatorValue > this.threshold) {
-        this.blocked = true;
         return true;
       } else if (indicatorValue < this.threshold) {
         this.blocked = false;
@@ -57,6 +59,11 @@ module.exports.TradeTrigger = class TradeTrigger {
     this.conditions.forEach((condition) => {
       triggerCondition = (triggerCondition && condition.isTrue());
     });
+    if (triggerCondition) {
+      this.conditions.forEach((condition) => {
+        condition.block();
+      });
+    }
     return triggerCondition;
   }
 };

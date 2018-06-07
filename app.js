@@ -51,11 +51,10 @@ if (config.pairs.EOSUSD.enable) {
   const rsiConditionRise = new Condition(config.pairs.EOSUSD.rsiLongValue, true, false, Indicator.RSI, pairEosUsd);
   const rsiConditionFall = new Condition(config.pairs.EOSUSD.rsiShortValue, false, true, Indicator.RSI, pairEosUsd);
   const adxConditionRise = new Condition(config.pairs.EOSUSD.adxValue, true, false, Indicator.ADX, pairEosUsd);
-  const tradeTriggerAdx = new TradeTrigger(adxConditionRise, PositionType.LONG);
   const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
+  tradeTriggerRsiLong.addCondition(adxConditionRise);
   const tradeTriggerRsiShort = new TradeTrigger(rsiConditionFall, PositionType.SHORT);
 
-  pairEosUsd.addTrigger(tradeTriggerAdx);
   pairEosUsd.addTrigger(tradeTriggerRsiLong);
   pairEosUsd.addTrigger(tradeTriggerRsiShort);
   pairEosUsd.subscribe(observerCallback);
