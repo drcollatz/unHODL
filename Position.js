@@ -1,4 +1,5 @@
 const config = require('./conf/config');
+const { Indicator } = require('./Indicator');
 
 const PositionType = {
   LONG: 0,
@@ -39,19 +40,23 @@ module.exports.Position = class Position {
     const trailing = (this.doTrailing) ? 'ON' : 'OFF';
     const balanceDiff = ((this.pair.exchange.currentBalance - config.trading.startBalance) / config.trading.startBalance) * 100;
 
-    const stats = `\`Amount   = ${(this.amount).toFixed(3)} ${this.pair}\
-                   \nRSI      = ${this.pair.currentRSI}\
-                   \nTP       = ${(this.takeProfitPrice).toFixed(3)} USD\
+    const amount = `\`Amount   = ${(this.amount).toFixed(3)} ${this.pair}`;
+    let strIndicator = '';
+    this.pair.indicatorMap.forEach((candleKey, indicator) => {
+      strIndicator += `\n${Indicator.toString(indicator)}      = ${this.pair.indicators[indicator].toFixed(3)}`;
+    });
+
+    const stats = `\nTP       = ${(this.takeProfitPrice).toFixed(3)} USD\
                    \nSL       = ${(this.stopLossPrice).toFixed(3)} USD\
                    \nTrailing = ${trailing}\
                    \nBalance  = ${(this.pair.exchange.currentBalance).toFixed(2)} USD (${balanceDiff.toFixed(2)} %) \
                    \nTrades   = ${this.pair.exchange.tradeCounterWin} \u{1F44D} / ${this.pair.exchange.tradeCounterLost} \u{1F44E}\``;
 
     const close = `${posType} closed @ ${this.closingPrice.toFixed(3)} USD (${(this.profit).toFixed(2)} %) ${closeResult}\
-                   \n\`----------------------\`\n${stats}`;
+                   \n\`----------------------\`\n${amount}${strIndicator}${stats}`;
 
     const open = `${posType} opened @ ${this.orderPrice.toFixed(3)} USD \
-                   \n\`----------------------\`\n${stats}`;
+                   \n\`----------------------\`\n${amount}${strIndicator}${stats}`;
     return this.closingPrice ? close : open;
   }
 
