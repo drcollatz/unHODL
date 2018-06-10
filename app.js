@@ -45,19 +45,24 @@ if (config.pairs.EOSUSD.enable) {
   const indicatorMap = new Map();
   indicatorMap.set(Indicator.RSI, CANDLE_KEY_EOS_USD_1M);
   indicatorMap.set(Indicator.ADX, CANDLE_KEY_EOS_USD_1M);
-  indicatorMap.set(Indicator.PSAR, CANDLE_KEY_EOS_USD_1M);
+  indicatorMap.set(Indicator.SAR, CANDLE_KEY_EOS_USD_1M);
   const pairEosUsd =
     new TradingPair(exchange, indicatorMap, config.pairs.EOSUSD.trailing);
 
   const rsiConditionRise = new Condition(config.pairs.EOSUSD.rsiLongValue, true, false, Indicator.RSI, pairEosUsd);
   const rsiConditionFall = new Condition(config.pairs.EOSUSD.rsiShortValue, false, true, Indicator.RSI, pairEosUsd);
   const adxConditionRise = new Condition(config.pairs.EOSUSD.adxValue, true, false, Indicator.ADX, pairEosUsd);
-  const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
-  tradeTriggerRsiLong.addCondition(adxConditionRise);
-  const tradeTriggerRsiShort = new TradeTrigger(rsiConditionFall, PositionType.SHORT);
+  const sarConditionUP = new Condition('SAR', true, false, Indicator.SAR, pairEosUsd);
+  const sarConditionDOWN = new Condition('SAR', false, true, Indicator.SAR, pairEosUsd);
+  const openLongTrigger = new TradeTrigger(sarConditionDOWN, PositionType.LONG);
+  // openLongTrigger.addCondition(adxConditionRise);
+  // openLongTrigger.addCondition(sarConditionDOWN);
+  const openShortTrigger = new TradeTrigger(sarConditionUP, PositionType.SHORT);
+  // openShortTrigger.addCondition(adxConditionRise);
+  // openShortTrigger.addCondition(sarConditionUP);
 
-  pairEosUsd.addTrigger(tradeTriggerRsiLong);
-  pairEosUsd.addTrigger(tradeTriggerRsiShort);
+  pairEosUsd.addTrigger(openLongTrigger);
+  pairEosUsd.addTrigger(openShortTrigger);
   pairEosUsd.subscribe(observerCallback);
 
   pairEosUsd.goLive();
@@ -65,19 +70,22 @@ if (config.pairs.EOSUSD.enable) {
 if (config.pairs.BTCUSD.enable) {
   const indicatorMap = new Map();
   indicatorMap.set(Indicator.RSI, CANDLE_KEY_BTC_USD_1M);
-  indicatorMap.set(Indicator.ADX, CANDLE_KEY_BTC_USD_5M);
-  indicatorMap.set(Indicator.PSAR, CANDLE_KEY_BTC_USD_5M);
+  indicatorMap.set(Indicator.ADX, CANDLE_KEY_BTC_USD_1M);
+  indicatorMap.set(Indicator.SAR, CANDLE_KEY_BTC_USD_1M);
 
   const pairBtcUsd =
     new TradingPair(exchange, indicatorMap, config.pairs.BTCUSD.trailing);
 
   const rsiConditionRise = new Condition(config.pairs.BTCUSD.rsiLongValue, true, false, Indicator.RSI, pairBtcUsd);
   const rsiConditionFall = new Condition(config.pairs.BTCUSD.rsiShortValue, false, true, Indicator.RSI, pairBtcUsd);
-  const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
-  const tradeTriggerRsiShort = new TradeTrigger(rsiConditionFall, PositionType.SHORT);
+  const adxConditionRise = new Condition(config.pairs.BTCUSD.adxValue, true, false, Indicator.ADX, pairBtcUsd);
+  const openLongTrigger = new TradeTrigger(rsiConditionRise, PositionType.LONG);
+  openLongTrigger.addCondition(adxConditionRise);
+  const openShortTrigger = new TradeTrigger(rsiConditionFall, PositionType.SHORT);
+  openShortTrigger.addCondition(adxConditionRise);
 
-  pairBtcUsd.addTrigger(tradeTriggerRsiLong);
-  pairBtcUsd.addTrigger(tradeTriggerRsiShort);
+  pairBtcUsd.addTrigger(openLongTrigger);
+  pairBtcUsd.addTrigger(openShortTrigger);
   pairBtcUsd.subscribe(observerCallback);
 
   pairBtcUsd.goLive();
@@ -85,18 +93,24 @@ if (config.pairs.BTCUSD.enable) {
 if (config.pairs.ETHUSD.enable) {
   const indicatorMap = new Map();
   indicatorMap.set(Indicator.RSI, CANDLE_KEY_ETH_USD_1M);
-  indicatorMap.set(Indicator.ADX, CANDLE_KEY_ETH_USD_5M);
+  indicatorMap.set(Indicator.ADX, CANDLE_KEY_ETH_USD_1M);
+  indicatorMap.set(Indicator.SAR, CANDLE_KEY_ETH_USD_1M);
 
   const pairEthUsd =
     new TradingPair(exchange, indicatorMap, config.pairs.ETHUSD.trailing);
 
-  const rsiConditionRise = new Condition(config.pairs.ETHUSD.rsiLongValue, true, false, Indicator.RSI, pairEthUsd);
-  const rsiConditionFall = new Condition(config.pairs.ETHUSD.rsiShortValue, false, true, Indicator.RSI, pairEthUsd);
-  const tradeTriggerRsiLong = new TradeTrigger(rsiConditionRise, PositionType.LONG);
-  const tradeTriggerRsiShort = new TradeTrigger(rsiConditionFall, PositionType.SHORT);
+  // const rsiConditionRise = new Condition(config.pairs.ETHUSD.rsiLongValue, true, false, Indicator.RSI, pairEthUsd);
+  // const rsiConditionFall = new Condition(config.pairs.ETHUSD.rsiShortValue, false, true, Indicator.RSI, pairEthUsd);
+  // const adxConditionRise = new Condition(config.pairs.ETHUSD.adxValue, true, false, Indicator.ADX, pairEthUsd);
+  const sarConditionUP = new Condition('SAR', true, false, Indicator.SAR, pairEthUsd);
+  const sarConditionDOWN = new Condition('SAR', false, true, Indicator.SAR, pairEthUsd);
+  const openLongTrigger = new TradeTrigger(sarConditionDOWN, PositionType.LONG);
+  // openLongTrigger.addCondition(sarConditionDOWN);
+  const openShortTrigger = new TradeTrigger(sarConditionUP, PositionType.SHORT);
+  // openShortTrigger.addCondition(sarConditionUP);
 
-  pairEthUsd.addTrigger(tradeTriggerRsiLong);
-  pairEthUsd.addTrigger(tradeTriggerRsiShort);
+  pairEthUsd.addTrigger(openLongTrigger);
+  pairEthUsd.addTrigger(openShortTrigger);
   pairEthUsd.subscribe(observerCallback);
 
   pairEthUsd.goLive();

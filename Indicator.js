@@ -1,11 +1,11 @@
 const RSI = require('./indicators/RSI');
 const ADX = require('./indicators/ADX');
-const PSAR = require('./indicators/PSAR');
+const SAR = require('./indicators/SAR');
 
 const Indicator = {
   RSI: 0,
   ADX: 1,
-  PSAR: 2,
+  SAR: 2,
   MAXINDICATOR: 3,
 
   toString(indicator) {
@@ -17,8 +17,8 @@ const Indicator = {
       case Indicator.ADX:
         str = 'ADX';
         break;
-      case Indicator.PSAR:
-        str = 'PSAR';
+      case Indicator.SAR:
+        str = 'SAR';
         break;
       default:
         break;
@@ -35,8 +35,8 @@ const Indicator = {
       case Indicator.ADX:
         indicatorValue = ADX.adxCalculation(candles);
         break;
-      case Indicator.PSAR:
-        indicatorValue = PSAR.psarCalculation(candles);
+      case Indicator.SAR:
+        indicatorValue = SAR.sarCalculation(candles);
         break;
       default:
         break;

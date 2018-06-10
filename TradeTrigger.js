@@ -27,13 +27,28 @@ module.exports.Condition = class Condition {
       // return false, to avoid order execution on startup, if indicator value is 0 -> zero initialized !
       return false;
     }
+
     if (this.fallingEdge) {
+      if (this.threshold === 'SAR') {
+        if (!this.blocked && indicatorValue < this.pair.currentPrice) {
+          return true;
+        } else if (indicatorValue > this.pair.currentPrice) {
+          this.blocked = false;
+        }
+      }
       if (!this.blocked && indicatorValue < this.threshold) {
         return true;
       } else if (indicatorValue > this.threshold) {
         this.blocked = false;
       }
     } else if (this.risingEdge) {
+      if (this.threshold === 'SAR') {
+        if (!this.blocked && indicatorValue > this.pair.currentPrice) {
+          return true;
+        } else if (indicatorValue < this.pair.currentPrice) {
+          this.blocked = false;
+        }
+      }
       if (!this.blocked && indicatorValue > this.threshold) {
         return true;
       } else if (indicatorValue < this.threshold) {

@@ -35,7 +35,7 @@ module.exports.Position = class Position {
     this.profit = 0;
   }
   toString() {
-    const posType = this.type === PositionType.SHORT ? '\u{1F4C9} SHORT' : '\u{1F4C8} LONG';
+    const posType = this.type === PositionType.SHORT ? '\u{1F4C9}' : '\u{1F4C8}';
     const closeResult = (this.profit > 0) ? '\u{1F44D}' : '\u{1F44E}';
     const trailing = (this.doTrailing) ? 'ON' : 'OFF';
     const balanceDiff = ((this.pair.exchange.currentBalance - config.trading.startBalance) / config.trading.startBalance) * 100;
@@ -52,10 +52,10 @@ module.exports.Position = class Position {
                    \nBalance  = ${(this.pair.exchange.currentBalance).toFixed(2)} USD (${balanceDiff.toFixed(2)} %) \
                    \nTrades   = ${this.pair.exchange.tradeCounterWin} \u{1F44D} / ${this.pair.exchange.tradeCounterLost} \u{1F44E}\``;
 
-    const close = `${posType} closed @ ${this.closingPrice.toFixed(3)} USD (${(this.profit).toFixed(2)} %) ${closeResult}\
+    const close = `${posType} \u{1F534} @ ${this.closingPrice.toFixed(3)} USD (${(this.profit).toFixed(2)} %) ${closeResult}\
                    \n\`----------------------\`\n${amount}${strIndicator}${stats}`;
 
-    const open = `${posType} opened @ ${this.orderPrice.toFixed(3)} USD \
+    const open = `${posType} \u{1F195} @ ${this.orderPrice.toFixed(3)} USD \
                    \n\`----------------------\`\n${amount}${strIndicator}${stats}`;
     return this.closingPrice ? close : open;
   }
@@ -87,7 +87,7 @@ module.exports.Position = class Position {
     }
 
     if (this.doTrailing) {
-      this.updateTakeProfit();
+      // this.updateTakeProfit();
       this.updateStopLoss();
     }
   }

@@ -74,8 +74,6 @@ module.exports.TradingPair = class TradingPair {
     this.candleKeys = [];
     this.coin = '';
 
-    this.blockOpeningNewPosition = false;
-
     this.indicatorMap = indicatorMap;
     this.indicatorMap.forEach((candleKey, indicator) => {
       if (candleKey.includes(this.coin) || this.coin === '') {
