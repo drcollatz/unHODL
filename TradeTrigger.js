@@ -7,7 +7,7 @@ module.exports.Condition = class Condition {
     this.risingEdge = risingEdge;
     this.fallingEdge = fallingEdge;
     this.pair = pair;
-    this.blocked = false;
+    this.blocked = true;
 
     if (this.indicator >= Indicator.MAXINDICATOR) {
       throw Promise.reject(new Error('Indicator not known!'));
