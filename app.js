@@ -49,11 +49,11 @@ if (config.pairs.EOSUSD.enable) {
   const pairEosUsd =
     new TradingPair(exchange, indicatorMap, config.pairs.EOSUSD.trailing);
 
-  const rsiConditionRise = new Condition(config.pairs.EOSUSD.rsiLongValue, true, false, Indicator.RSI, pairEosUsd);
-  const rsiConditionFall = new Condition(config.pairs.EOSUSD.rsiShortValue, false, true, Indicator.RSI, pairEosUsd);
-  const adxConditionRise = new Condition(config.pairs.EOSUSD.adxValue, true, false, Indicator.ADX, pairEosUsd);
-  const sarConditionUP = new Condition('SAR', true, false, Indicator.SAR, pairEosUsd);
-  const sarConditionDOWN = new Condition('SAR', false, true, Indicator.SAR, pairEosUsd);
+  // const rsiConditionRise = new Condition(config.pairs.EOSUSD.rsiLongValue, true, false, Indicator.RSI, pairEosUsd);
+  // const rsiConditionFall = new Condition(config.pairs.EOSUSD.rsiShortValue, false, true, Indicator.RSI, pairEosUsd);
+  // const adxConditionRise = new Condition(config.pairs.EOSUSD.adxValue, true, false, Indicator.ADX, pairEosUsd);
+  const sarConditionUP = new Condition(0, true, false, Indicator.SAR, pairEosUsd);
+  const sarConditionDOWN = new Condition(0, false, true, Indicator.SAR, pairEosUsd);
   const openLongTrigger = new TradeTrigger(sarConditionDOWN, PositionType.LONG);
   // openLongTrigger.addCondition(adxConditionRise);
   // openLongTrigger.addCondition(sarConditionDOWN);
@@ -102,8 +102,8 @@ if (config.pairs.ETHUSD.enable) {
   // const rsiConditionRise = new Condition(config.pairs.ETHUSD.rsiLongValue, true, false, Indicator.RSI, pairEthUsd);
   // const rsiConditionFall = new Condition(config.pairs.ETHUSD.rsiShortValue, false, true, Indicator.RSI, pairEthUsd);
   // const adxConditionRise = new Condition(config.pairs.ETHUSD.adxValue, true, false, Indicator.ADX, pairEthUsd);
-  const sarConditionUP = new Condition('SAR', true, false, Indicator.SAR, pairEthUsd);
-  const sarConditionDOWN = new Condition('SAR', false, true, Indicator.SAR, pairEthUsd);
+  const sarConditionUP = new Condition(0, true, false, Indicator.SAR, pairEthUsd);
+  const sarConditionDOWN = new Condition(0, false, true, Indicator.SAR, pairEthUsd);
   const openLongTrigger = new TradeTrigger(sarConditionDOWN, PositionType.LONG);
   // openLongTrigger.addCondition(sarConditionDOWN);
   const openShortTrigger = new TradeTrigger(sarConditionUP, PositionType.SHORT);

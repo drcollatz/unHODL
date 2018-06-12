@@ -40,7 +40,7 @@ module.exports = {
         } else {
           bot.sendMessage(
             config.telegram.chat,
-            `No active positions for active pair ${pair.candleKey}`,
+            `No active positions for active pair ${pair.coin}`,
           );
         }
       });

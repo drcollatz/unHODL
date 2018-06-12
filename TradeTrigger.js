@@ -29,7 +29,7 @@ module.exports.Condition = class Condition {
     }
 
     if (this.fallingEdge) {
-      if (this.threshold === 'SAR') {
+      if (this.indicator === Indicator.SAR) {
         if (!this.blocked && indicatorValue < this.pair.currentPrice) {
           return true;
         } else if (indicatorValue > this.pair.currentPrice) {
@@ -42,7 +42,7 @@ module.exports.Condition = class Condition {
         this.blocked = false;
       }
     } else if (this.risingEdge) {
-      if (this.threshold === 'SAR') {
+      if (this.indicator === Indicator.SAR) {
         if (!this.blocked && indicatorValue > this.pair.currentPrice) {
           return true;
         } else if (indicatorValue < this.pair.currentPrice) {
