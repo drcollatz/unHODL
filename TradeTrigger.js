@@ -35,8 +35,7 @@ module.exports.Condition = class Condition {
         } else if (indicatorValue > this.pair.currentPrice) {
           this.blocked = false;
         }
-      }
-      if (!this.blocked && indicatorValue < this.threshold) {
+      } else if (!this.blocked && indicatorValue < this.threshold) {
         return true;
       } else if (indicatorValue > this.threshold) {
         this.blocked = false;
@@ -48,8 +47,7 @@ module.exports.Condition = class Condition {
         } else if (indicatorValue < this.pair.currentPrice) {
           this.blocked = false;
         }
-      }
-      if (!this.blocked && indicatorValue > this.threshold) {
+      } else if (!this.blocked && indicatorValue > this.threshold) {
         return true;
       } else if (indicatorValue < this.threshold) {
         this.blocked = false;
