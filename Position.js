@@ -99,10 +99,10 @@ module.exports.Position = class Position {
     let ret = false;
     if (
       (this.type === PositionType.LONG &&
-        (this.pair.currentPrice >= this.takeProfitPrice ||
+        (/* this.pair.currentPrice >= this.takeProfitPrice || */
           this.pair.currentPrice <= this.stopLossPrice)) ||
       (this.type === PositionType.SHORT &&
-        (this.pair.currentPrice <= this.takeProfitPrice ||
+        (/* this.pair.currentPrice <= this.takeProfitPrice || */
           this.pair.currentPrice >= this.stopLossPrice))
     ) {
       ret = true;

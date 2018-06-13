@@ -34,7 +34,7 @@ module.exports.TradingPair = class TradingPair {
         // this.checkMarketSituation();
         this.tradeTriggers.forEach((tradeTrigger) => {
           if (tradeTrigger.checkTrigger()) {
-            console.log('Condition is true!');
+            //console.log('Condition is true!');
             if (this.activePosition == null && this.currentPrice !== 0) {
               this.activePosition = new Position(
                 this,
