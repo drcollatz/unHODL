@@ -25,5 +25,9 @@
   },
   "engines": {
     "node": ">=8.11.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/drcollatz/unHODL.git"
   }
 }
