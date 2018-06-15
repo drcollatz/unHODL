@@ -23,15 +23,18 @@ module.exports.Position = class Position {
 
     if (this.type === PositionType.LONG) {
       this.takeProfitPrice = (this.orderPrice * (1 + (takeProfitPerc / 100)));
+      this.takeProfitBasePrice = this.takeProfitPrice;
       this.stopLossPrice = (this.orderPrice * (1 - (stopLossPerc / 100)));
     } else if (this.type === PositionType.SHORT) {
       this.takeProfitPrice = (this.orderPrice * (1 - (takeProfitPerc / 100)));
+      this.takeProfitBasePrice = this.takeProfitPrice;
       this.stopLossPrice = (this.orderPrice * (1 + (stopLossPerc / 100)));
     }
 
     this.doTrailing = doTrailing;
+    this.profitTrailing = false;
     this.stopLossBasePrice = this.orderPrice;
-    this.takeProfitBasePrice = this.orderPrice;
+    // this.takeProfitBasePrice = this.orderPrice;
     this.profit = 0;
   }
   toString() {
@@ -46,8 +49,8 @@ module.exports.Position = class Position {
       strIndicator += `\n${Indicator.toString(indicator)}      = ${this.pair.indicators[indicator].toFixed(3)}`;
     });
 
-    const stats = `\nTP       = ${(this.takeProfitPrice).toFixed(3)} USD\
-                   \nSL       = ${(this.stopLossPrice).toFixed(3)} USD\
+    const stats = `\nTP       = ${(this.takeProfitPrice).toFixed(3)} USD (${config.trading.takeProfitPerc}%)\
+                   \nSL       = ${(this.stopLossPrice).toFixed(3)} USD (${config.trading.stopLossPerc}%)\
                    \nTrailing = ${trailing}\
                    \nBalance  = ${(this.pair.exchange.currentBalance).toFixed(2)} USD (${balanceDiff.toFixed(2)} %) \
                    \nTrades   = ${this.pair.exchange.tradeCounterWin} \u{1F44D} / ${this.pair.exchange.tradeCounterLost} \u{1F44E}\``;
@@ -66,7 +69,7 @@ module.exports.Position = class Position {
 
   close() {
     // Calc profit in % for now, calc profit for short as positive
-    this.profit = ((this.pair.currentPrice - this.orderPrice) / this.orderPrice) * 100;
+    this.profit = (((this.pair.currentPrice - this.orderPrice) / this.orderPrice) * 100) * config.trading.margin;
     if (this.type === PositionType.SHORT) {
       this.profit *= -1;
     }
@@ -114,19 +117,25 @@ module.exports.Position = class Position {
    * Trailing of stop loss limit if profit increase
    */
   updateStopLoss() {
-    if (this.type === PositionType.LONG && this.pair.currentPrice > this.stopLossBasePrice) {
-      this.stopLossPrice = (
-        this.pair.currentPrice *
-        (1 - (this.stopLossPerc / 100))
-      );
-      this.stopLossBasePrice = this.pair.currentPrice;
+    if (this.type === PositionType.LONG && this.pair.currentPrice >= this.takeProfitPrice && !this.profitTrailing) {
+      this.stopLossPrice = this.pair.currentPrice * 0.9999;
+      this.takeProfitBasePrice = this.pair.currentPrice * (1 + (this.stopLossPerc / 100));
+      this.profitTrailing = true;
+      console.log(`SL = TP and updated to ${this.stopLossPrice} CP: ${this.pair.currentPrice} TPB: ${this.takeProfitBasePrice}`);
+    } else if (this.type === PositionType.SHORT && this.pair.currentPrice <= this.takeProfitPrice && !this.profitTrailing) {
+      this.stopLossPrice = this.pair.currentPrice * 1.0001;
+      this.takeProfitBasePrice = this.pair.currentPrice * (1 - (this.stopLossPerc / 100));
+      this.profitTrailing = true;
+      console.log(`SL = TP and updated to ${this.stopLossPrice} CP: ${this.pair.currentPrice} TPB: ${this.takeProfitBasePrice}`);
+    }
+
+    if (this.type === PositionType.LONG && this.pair.currentPrice >= this.takeProfitBasePrice && this.profitTrailing) {
+      this.stopLossPrice = (this.pair.currentPrice * (1 - (this.stopLossPerc / 100)));
+      this.takeProfitBasePrice = this.pair.currentPrice;
       console.log(`Stop Loss updated to: ${(this.stopLossPrice).toFixed(3)}`);
-    } else if (this.type === PositionType.SHORT && this.pair.currentPrice < this.stopLossBasePrice) {
-      this.stopLossPrice = (
-        this.pair.currentPrice *
-        (1 + (this.stopLossPerc / 100))
-      );
-      this.stopLossBasePrice = this.pair.currentPrice;
+    } else if (this.type === PositionType.SHORT && this.pair.currentPrice <= this.takeProfitBasePrice && this.profitTrailing) {
+      this.stopLossPrice = (this.pair.currentPrice * (1 + (this.stopLossPerc / 100)));
+      this.takeProfitBasePrice = this.pair.currentPrice;
       console.log(`Stop Loss updated to: ${(this.stopLossPrice).toFixed(3)}`);
     }
   }

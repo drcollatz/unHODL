@@ -31,7 +31,7 @@ module.exports.TradingPair = class TradingPair {
         });
         const strPrice = ` @ ${this.currentPrice.toFixed(3)} USD`;
         console.log(strTime + strIndicator + strPrice);
-        // this.checkMarketSituation();
+
         this.tradeTriggers.forEach((tradeTrigger) => {
           if (tradeTrigger.checkTrigger()) {
             //console.log('Condition is true!');
