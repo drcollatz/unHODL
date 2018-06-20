@@ -73,6 +73,7 @@ module.exports.Position = class Position {
     if (this.type === PositionType.SHORT) {
       this.profit *= -1;
     }
+    this.profit -= config.trading.fee;
     this.pair.exchange.currentBalance *= 1 + (this.profit / 100);
     this.closingPrice = this.pair.currentPrice;
     if (this.profit > 0) {
