@@ -69,7 +69,7 @@ module.exports.Position = class Position {
 
   close() {
     // Calc profit in % for now, calc profit for short as positive
-    this.profit = (((this.pair.currentPrice - this.orderPrice) / this.orderPrice) * 100) * config.trading.margin;
+    this.profit = (((((this.pair.currentPrice - this.orderPrice) / this.orderPrice) * 100) * config.trading.margin));
     if (this.type === PositionType.SHORT) {
       this.profit *= -1;
     }
@@ -119,7 +119,8 @@ module.exports.Position = class Position {
    */
   updateStopLoss() {
     if (this.type === PositionType.LONG && this.pair.currentPrice >= this.takeProfitPrice && !this.profitTrailing) {
-      this.stopLossPrice = this.pair.currentPrice * 0.9999;
+      // this.stopLossPrice = this.pair.currentPrice * 0.9999;
+      this.stopLossPrice = this.pair.indicator[Indicator.SAR];
       this.takeProfitBasePrice = this.pair.currentPrice * (1 + (this.stopLossPerc / 100));
       this.profitTrailing = true;
       console.log(`SL = TP and updated to ${this.stopLossPrice} CP: ${this.pair.currentPrice} TPB: ${this.takeProfitBasePrice}`);

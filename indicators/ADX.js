@@ -9,7 +9,7 @@ module.exports.adxCalculation = (candles) => {
     close: candles.map(x => x.close).reverse(),
     high: candles.map(x => x.high).reverse(),
     low: candles.map(x => x.low).reverse(),
-    period: 14,
+    period: 3,
   };
 
   const resultArray = ADX.calculate(input).map(x => x.adx);

@@ -22,7 +22,7 @@ module.exports.TradingPair = class TradingPair {
         this.currentRSI = this.indicators[Indicator.RSI];
         const interval = data.get('candleKey').slice(6, 7);
         if (interval === '1') {
-          this.currentPrice = candles[0].close; // current candle (1m interval) close is more accurate then ticker
+          this.currentPrice = candles[0][3]; // current candle (1m interval) close is more accurate then ticker
         }
         const strTime = `${time} - Candle interval: ${interval} of ${this.toString()},`;
         let strIndicator = '';
@@ -42,7 +42,7 @@ module.exports.TradingPair = class TradingPair {
                 (this.exchange.currentBalance / this.currentPrice) * config.trading.margin,
                 this.currentPrice,
                 config.trading.takeProfitPerc,
-                config.trading.stopLossPerc,
+                config.trading.stopLossPerc * 2,
                 this.trailing,
               );
               this.activePosition.open();

@@ -6,8 +6,8 @@ const { PSAR } = require('technicalindicators');
  */
 module.exports.sarCalculation = (candles) => {
   const input = {
-    high: candles.map(x => x.high).reverse(),
-    low: candles.map(x => x.low).reverse(),
+    high: candles.map(x => x[2]).reverse(),
+    low: candles.map(x => x[3]).reverse(),
     step: 0.02,
     max: 0.02,
   };

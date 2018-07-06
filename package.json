@@ -10,10 +10,15 @@
   "author": "DrCollatz, BEGCryptoCrew",
   "license": "MIT",
   "dependencies": {
+    "ansicolor": "^1.1.72",
+    "as-table": "^1.0.33",
+    "asciichart": "^1.5.7",
     "bitfinex-api-node": "^2.0.0-beta.1",
+    "ccxt": "^1.14.222",
     "mongodb": "^3.1.0-beta4",
     "mongoose": "^5.1.2",
     "node-telegram-bot-api": "^0.30.0",
+    "ololog": "^1.1.103",
     "reconnecting-websocket": "^4.0.0-rc3",
     "technicalindicators": "^1.1.11",
     "ws": "^5.1.1"

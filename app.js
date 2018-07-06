@@ -8,7 +8,7 @@ const { PositionType } = require('./Position.js');
 process.env.NTBA_FIX_319 = 1; // needed for telegram issue
 
 const config = require('./conf/config');
-const Exchange = require('./Exchange.js');
+const Exchange = require('./Exchanges/Bitfinex');
 
 const TelegramConnector = require('./TelegramConnector.js');
 
@@ -38,22 +38,22 @@ function observerCallback(data) {
   }
 }
 
-const exchange = new Exchange(config.bitfinex.key, config.bitfinex.secret, config.trading.startBalance);
+const exchange = new Exchange(config.trading.startBalance);
 
 
 if (config.pairs.EOSUSD.enable) {
   const indicatorMap = new Map();
   indicatorMap.set(Indicator.RSI, CANDLE_KEY_EOS_USD_1M);
   indicatorMap.set(Indicator.ADX, CANDLE_KEY_EOS_USD_1M);
-  indicatorMap.set(Indicator.SAR, CANDLE_KEY_EOS_USD_1M);
+  indicatorMap.set(Indicator.SAR, CANDLE_KEY_EOS_USD_5M);
   const pairEosUsd =
     new TradingPair(exchange, indicatorMap, config.pairs.EOSUSD.trailing);
 
-  // const rsiConditionRise = new Condition(config.pairs.EOSUSD.rsiLongValue, true, false, Indicator.RSI, pairEosUsd);
-  // const rsiConditionFall = new Condition(config.pairs.EOSUSD.rsiShortValue, false, true, Indicator.RSI, pairEosUsd);
-  // const adxConditionRise = new Condition(config.pairs.EOSUSD.adxValue, true, false, Indicator.ADX, pairEosUsd);
-  const sarConditionUP = new Condition(0, true, false, Indicator.SAR, pairEosUsd);
-  const sarConditionDOWN = new Condition(0, false, true, Indicator.SAR, pairEosUsd);
+  const rsiConditionRise = new Condition(config.pairs.EOSUSD.rsiLongValue, true, false, Indicator.RSI, pairEosUsd);
+  const rsiConditionFall = new Condition(config.pairs.EOSUSD.rsiShortValue, false, true, Indicator.RSI, pairEosUsd);
+  const adxConditionRise = new Condition(config.pairs.EOSUSD.adxValue, true, false, Indicator.ADX, pairEosUsd);
+  const sarConditionUP = new Condition(0, true, false, Indicator.SAR, pairEosUsd); // for short
+  const sarConditionDOWN = new Condition(0, false, true, Indicator.SAR, pairEosUsd); // for long
   const openLongTrigger = new TradeTrigger(sarConditionDOWN, PositionType.LONG);
   // openLongTrigger.addCondition(adxConditionRise);
   // openLongTrigger.addCondition(sarConditionDOWN);
