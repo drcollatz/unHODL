@@ -42,7 +42,7 @@ module.exports.TradingPair = class TradingPair {
                 (this.exchange.currentBalance / this.currentPrice) * config.trading.margin,
                 this.currentPrice,
                 config.trading.takeProfitPerc,
-                config.trading.stopLossPerc,
+                config.trading.stopLossPerc * 2,
                 this.trailing,
               );
               this.activePosition.open();

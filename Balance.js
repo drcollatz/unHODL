@@ -12,7 +12,10 @@ module.exports = class Balance {
         packetWDDelay: 10 * 1000,
       },
     });
-    this.balances = {};
+
+    this.wallets = {};
+    this.wallets.positions = {};
+
     if (config.bitfinex.key !== '') {
       this.rest = this.bfx.rest(2, {
         transform: true,
@@ -26,19 +29,29 @@ module.exports = class Balance {
  * @returns
  */
   async checkBalances() {
-    const balances = await this.rest.balances();
-    balances.forEach((b) => {
-      if (b.type === 'trading' && b.currency === 'usd') {
-        console.log(`${new Date().toLocaleTimeString()} - Wallet amount: ${b.amount}`);
-        console.log(`${new Date().toLocaleTimeString()} - Wallet available: ${b.available}`);
-        this.balances.available = b.available;
-        this.balances.amount = b.amount;
+    const wallets = await this.rest.wallets();
+    wallets.forEach((w) => {
+      if (w.type === 'margin' && w.currency === 'USD') {
+        console.log(`${new Date().toLocaleTimeString()} - Margin wallet balance: ${w.balance}`);
+        this.wallets.balance = w.balance;
       }
     });
   }
 
+  /**
+ * Fetches the balances from exchange via REST
+ *
+ * @returns
+ */
+  async checkPosition() {
+    const positions = await this.rest.positions();
+    this.wallets.positions.amount = positions[0].amount;
+    this.wallets.positions.pl = positions[0].pl;
+  }
+
   async getBalance() {
     await this.checkBalances();
-    return this.balances;
+    await this.checkPosition();
+    return this.wallets;
   }
 };

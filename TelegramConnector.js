@@ -20,7 +20,16 @@ module.exports = {
       const balance = await b.getBalance();
       bot.sendMessage(
         config.telegram.chat,
-        `Available balance: ${balance.available}\nAvailable amount: ${balance.amount}`,
+        `Available balance: ${balance.balance}`,
+      );
+    });
+
+    bot.onText(/\/position/, async () => {
+      const b = new Balance();
+      const balance = await b.getBalance();
+      bot.sendMessage(
+        config.telegram.chat,
+        `Position pl: ${balance.positions.pl}`,
       );
     });
 
@@ -62,7 +71,7 @@ module.exports = {
       bot.sendMessage(
         config.telegram.chat,
         "Hello I'm your unHODL bot.\nHere is the list of my commands:\n\n" +
-          '/balance to get balances\n/close to close open positions\n/pos to list open positions\n/price to get the current price',
+        '/balance to get balances\n/close to close open positions\n/pos to list open positions\n/price to get the current price',
       );
     });
 

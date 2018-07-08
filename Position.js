@@ -69,7 +69,7 @@ module.exports.Position = class Position {
 
   close() {
     // Calc profit in % for now, calc profit for short as positive
-    this.profit = (((this.pair.currentPrice - this.orderPrice) / this.orderPrice) * 100) * config.trading.margin;
+    this.profit = (((((this.pair.currentPrice - this.orderPrice) / this.orderPrice) * 100) * config.trading.margin));
     if (this.type === PositionType.SHORT) {
       this.profit *= -1;
     }
