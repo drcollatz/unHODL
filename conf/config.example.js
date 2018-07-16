@@ -44,5 +44,6 @@ config.trading.stopLossPerc = 1;
 config.trading.startBalance = 1000;
 config.trading.margin = 3.3;
 config.trading.fee = 0.3;
+config.trading.enabled = false;
 
 module.exports = config;

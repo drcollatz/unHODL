@@ -43,9 +43,13 @@ module.exports = class Exchange {
       });
       this.ws.on('close', () => console.log('closed'));
 
-      this.ws.on('open', () => {
-        this.ws.auth.bind(this.ws);
+      this.ws.on('auth', () => {
+        console.log('authenticated!');
+      });
 
+      this.ws.on('open', () => {
+        this.ws.auth.bind(this.ws); // ??
+        this.ws.auth();
         tradingPair.candleKeys.forEach((candleKey) => {
           this.ws.subscribeCandles(candleKey);
           const msg = `Class ${this.constructor.name}: Websocket opened for ${candleKey}`;

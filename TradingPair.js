@@ -42,10 +42,10 @@ module.exports.TradingPair = class TradingPair {
                 (this.exchange.currentBalance / this.currentPrice) * config.trading.margin,
                 this.currentPrice,
                 config.trading.takeProfitPerc,
-                config.trading.stopLossPerc * 2,
+                config.trading.stopLossPerc,
                 this.trailing,
               );
-              this.activePosition.open();
+              if (config.trading.enabled) this.activePosition.open();
               const map = new Map();
               map.set('key', 'newPos');
               map.set('context', this);
