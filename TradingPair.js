@@ -31,10 +31,10 @@ module.exports.TradingPair = class TradingPair {
         });
         const strPrice = ` @ ${this.currentPrice.toFixed(3)} USD`;
         console.log(strTime + strIndicator + strPrice);
-
+        // this.checkMarketSituation();
         this.tradeTriggers.forEach((tradeTrigger) => {
           if (tradeTrigger.checkTrigger()) {
-            //console.log('Condition is true!');
+            // console.log('Condition is true!');
             if (this.activePosition == null && this.currentPrice !== 0) {
               this.activePosition = new Position(
                 this,
@@ -45,7 +45,9 @@ module.exports.TradingPair = class TradingPair {
                 config.trading.stopLossPerc,
                 this.trailing,
               );
-              if (config.trading.enabled) this.activePosition.open();
+              if (config.trading.enabled) {
+                this.activePosition.open();
+              }
               const map = new Map();
               map.set('key', 'newPos');
               map.set('context', this);

@@ -4,6 +4,7 @@ const { TradingPair } = require('./TradingPair.js');
 const Balance = require('./Balance');
 
 let bot;
+const startDate = new Date();
 
 module.exports = {
   sendToChat(msg) {
@@ -72,6 +73,13 @@ module.exports = {
         config.telegram.chat,
         "Hello I'm your unHODL bot.\nHere is the list of my commands:\n\n" +
         '/balance to get balances\n/close to close open positions\n/pos to list open positions\n/price to get the current price',
+      );
+    });
+
+    bot.onText(/\/starttime/, () => {
+      bot.sendMessage(
+        config.telegram.chat,
+        `Running since ${startDate.toString()}`,
       );
     });
 

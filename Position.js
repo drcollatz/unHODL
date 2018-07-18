@@ -22,6 +22,8 @@ module.exports.Position = class Position {
     this.closingPrice = 0;
     this.takeProfitPerc = takeProfitPerc;
     this.stopLossPerc = stopLossPerc;
+    this.startTime = new Date();
+    this.period = new Date();
 
     if (this.type === PositionType.LONG) {
       this.takeProfitPrice = (this.orderPrice * (1 + (takeProfitPerc / 100)));
@@ -87,6 +89,10 @@ module.exports.Position = class Position {
     const trailing = (this.doTrailing) ? 'ON' : 'OFF';
     const balanceDiff = ((this.pair.exchange.currentBalance - config.trading.startBalance) / config.trading.startBalance) * 100;
 
+    const strStartTime = `\`Started @ ${this.startTime.toString()}`;
+
+    const strPeriod = `\`Running for ${this.period.toTimeString()}`;
+
     const amount = `\`Amount   = ${(this.amount).toFixed(3)} ${this.pair}`;
     let strIndicator = '';
     this.pair.indicatorMap.forEach((candleKey, indicator) => {
@@ -100,10 +106,10 @@ module.exports.Position = class Position {
                    \nTrades   = ${this.pair.exchange.tradeCounterWin} \u{1F44D} / ${this.pair.exchange.tradeCounterLost} \u{1F44E}\``;
 
     const close = `${posType} \u{1F534} @ ${this.closingPrice.toFixed(3)} USD (${(this.profit).toFixed(2)} %) ${closeResult}\
-                   \n\`----------------------\`\n${amount}${strIndicator}${stats}`;
+                   \n\`----------------------\`\n${amount}${strIndicator}${stats}${strPeriod}`;
 
     const open = `${posType} \u{1F195} @ ${this.orderPrice.toFixed(3)} USD \
-                   \n\`----------------------\`\n${amount}${strIndicator}${stats}`;
+                   \n\`----------------------\`\n${amount}${strIndicator}${stats}${strStartTime}`;
     return this.closingPrice ? close : open;
   }
 
@@ -122,6 +128,7 @@ module.exports.Position = class Position {
     this.profit -= config.trading.fee;
     this.pair.exchange.currentBalance *= 1 + (this.profit / 100);
     this.closingPrice = this.pair.currentPrice;
+    this.period = new Date() - this.startTime;
     if (this.profit > 0) {
       this.pair.exchange.tradeCounterWin += 1;
     } else {
