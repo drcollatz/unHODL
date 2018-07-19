@@ -24,6 +24,7 @@ module.exports.Position = class Position {
     this.stopLossPerc = stopLossPerc;
     this.startTime = new Date();
     this.period = new Date();
+    this.debounce = 0;
 
     if (this.type === PositionType.LONG) {
       this.takeProfitPrice = (this.orderPrice * (1 + (takeProfitPerc / 100)));
@@ -91,7 +92,7 @@ module.exports.Position = class Position {
 
     const strStartTime = `\`Started @ ${this.startTime.toString()}`;
 
-    const strPeriod = `\`Running for ${this.period.toTimeString()}`;
+    const strPeriod = `\`Running for ${this.period.toString()}`;
 
     const amount = `\`Amount   = ${(this.amount).toFixed(3)} ${this.pair}`;
     let strIndicator = '';
@@ -106,10 +107,10 @@ module.exports.Position = class Position {
                    \nTrades   = ${this.pair.exchange.tradeCounterWin} \u{1F44D} / ${this.pair.exchange.tradeCounterLost} \u{1F44E}\``;
 
     const close = `${posType} \u{1F534} @ ${this.closingPrice.toFixed(3)} USD (${(this.profit).toFixed(2)} %) ${closeResult}\
-                   \n\`----------------------\`\n${amount}${strIndicator}${stats}${strPeriod}`;
+                   \n\`----------------------\`\n${amount}${strIndicator}${stats}`;
 
     const open = `${posType} \u{1F195} @ ${this.orderPrice.toFixed(3)} USD \
-                   \n\`----------------------\`\n${amount}${strIndicator}${stats}${strStartTime}`;
+                   \n\`----------------------\`\n${amount}${strIndicator}${stats}`;
     return this.closingPrice ? close : open;
   }
 
@@ -170,7 +171,7 @@ module.exports.Position = class Position {
   /**
    * Trailing of stop loss limit if profit increase
    */
-  async updateStopLoss() {
+  updateStopLoss() {
     // const b = new Balance();
     // const balance = await b.getBalance();
     // console.log(`Position pl: ${balance.positions.pl}`);
@@ -187,13 +188,17 @@ module.exports.Position = class Position {
       if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
       console.log(`SL = TP and updated to ${this.stopLossPrice} CP: ${this.pair.currentPrice} TPB: ${this.takeProfitBasePrice}`);
     } else if (this.type === PositionType.LONG && this.pair.currentPrice <= this.takeProfitPrice && !this.profitTrailing) {
-      if (this.pair.indicators[Indicator.SAR] > this.stopLossPrice) {
+      if (this.pair.indicators[Indicator.SAR] > this.stopLossPrice && this.debounce > 3) {
+        this.debounce += 1;
+        console.log(this.debounce);
         this.stopLossPrice = this.pair.indicators[Indicator.SAR];
         if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
         console.log(`SL = SAR and updated to ${this.stopLossPrice}`);
       }
     } else if (this.type === PositionType.SHORT && this.pair.currentPrice >= this.takeProfitPrice && !this.profitTrailing) {
-      if (this.pair.indicators[Indicator.SAR] < this.stopLossPrice) {
+      this.debounce += 1;
+      console.log(this.debounce);
+      if (this.pair.indicators[Indicator.SAR] < this.stopLossPrice && this.debounce > 3) {
         this.stopLossPrice = this.pair.indicators[Indicator.SAR];
         if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
         console.log(`SL = SAR and updated to ${this.stopLossPrice}`);
