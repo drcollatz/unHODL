@@ -188,17 +188,15 @@ module.exports.Position = class Position {
       if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
       console.log(`SL = TP and updated to ${this.stopLossPrice} CP: ${this.pair.currentPrice} TPB: ${this.takeProfitBasePrice}`);
     } else if (this.type === PositionType.LONG && this.pair.currentPrice <= this.takeProfitPrice && !this.profitTrailing) {
-      if (this.pair.indicators[Indicator.SAR] > this.stopLossPrice && this.debounce > 3) {
-        this.debounce += 1;
-        console.log(this.debounce);
+      this.debounce += 1;
+      if (this.pair.indicators[Indicator.SAR] > this.stopLossPrice && this.debounce > 2) {
         this.stopLossPrice = this.pair.indicators[Indicator.SAR];
         if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
         console.log(`SL = SAR and updated to ${this.stopLossPrice}`);
       }
     } else if (this.type === PositionType.SHORT && this.pair.currentPrice >= this.takeProfitPrice && !this.profitTrailing) {
       this.debounce += 1;
-      console.log(this.debounce);
-      if (this.pair.indicators[Indicator.SAR] < this.stopLossPrice && this.debounce > 3) {
+      if (this.pair.indicators[Indicator.SAR] < this.stopLossPrice && this.debounce > 2) {
         this.stopLossPrice = this.pair.indicators[Indicator.SAR];
         if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
         console.log(`SL = SAR and updated to ${this.stopLossPrice}`);
