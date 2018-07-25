@@ -45,8 +45,10 @@ module.exports = class Balance {
  */
   async checkPosition() {
     const positions = await this.rest.positions();
-    this.wallets.positions.amount = positions[0].amount;
-    this.wallets.positions.pl = positions[0].pl;
+    if (positions.length > 0) {
+      this.wallets.positions.amount = positions[0].amount;
+      this.wallets.positions.pl = positions[0].pl;
+    }
   }
 
   async getBalance() {
