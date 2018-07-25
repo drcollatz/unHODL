@@ -21,9 +21,9 @@ module.exports.TradingPair = class TradingPair {
 
         this.currentRSI = this.indicators[Indicator.RSI];
         const interval = data.get('candleKey').slice(6, 7);
-       // if (interval === '1') {
-          this.currentPrice = candles[0].close; // current candle (1m interval) close is more accurate then ticker
-       // }
+        // if (interval === '1') {
+        this.currentPrice = candles[0].close; // current candle (1m interval) close is more accurate then ticker
+        // }
         const strTime = `${time} - Candle interval: ${interval} of ${this.toString()},`;
         let strIndicator = '';
         this.indicatorMap.forEach((candleKey, indicator) => {
