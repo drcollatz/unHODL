@@ -61,24 +61,28 @@ module.exports.Position = class Position {
     this.openPosOrder.registerListeners();
     this.stopLossOrder.registerListeners();
 
-    // 14298127540,,1531474157801,tEOSUSD,1531474157281,1531474157302,0,-2,MARKET,,,,0,EXECUTED @ 7.0663(-2.0),,,7.0733,7.0663,,,,,,0,,0
     this.openPosOrder.on('update', () => {
-    //  console.log(`ORDER UPDATE - ID: ${this.openPosOrder.id} Type: ${this.openPosOrder.toPreview().type} Status: ${this.openPosOrder.status}`);
+      console.log(`OPEN POSITION ORDER UPDATE - ID: ${this.openPosOrder.id}\
+       Type: ${this.openPosOrder.toPreview().type} Status: ${this.openPosOrder.status}`);
     });
 
     this.stopLossOrder.on('update', () => {
-      console.log(`ORDER UPDATE - ID: ${this.stopLossOrder.id} Type: ${this.stopLossOrder.toPreview().type} Status: ${this.stopLossOrder.status}`);
+      console.log(`SL ORDER UPDATE - ID: ${this.stopLossOrder.id}\
+       Type: ${this.stopLossOrder.toPreview().type} Status: ${this.stopLossOrder.status}`);
     });
 
+    // Open Position Executed -> Set Stop Loss
     this.openPosOrder.on('close', () => {
-      console.log(`ORDER UPDATE - ID: ${this.takeProfitPrice.id} Type: ${this.openPosOrder.toPreview().type} Status: ${this.openPosOrder.status}`);
+      console.log(`OPEN POSITION ORDER CLOSED - ID: ${this.openPosOrder.id}\
+       Type: ${this.openPosOrder.toPreview().type} Status: ${this.openPosOrder.status}`);
       if (this.openPosOrder.status !== 'CANCELED') {
-        console.log(`Average Price: ${this.takeProfitPrice.priceAvg}`);
+        console.log(`OPEN POSITION ORDER AVG PRICE: ${this.openPosOrder.priceAvg}`);
+        // set Take Profit Price according to open position average price
         this.takeProfitPrice = this.openPosOrder.priceAvg * ((this.type === PositionType.LONG) ? (1 + (this.takeProfitPerc / 100)) : (1 - (this.takeProfitPerc / 100)));
-        console.log(`Take Profit Price: ${this.takeProfitPrice}`);
+        console.log(`TAKE PROFIT PRICE: ${this.takeProfitPrice}`);
         this.stopLossOrder.submit().then(() => {
-          console.log('STOP LOSS ORDER PLACED!');
-          console.log(`ID: ${this.stopLossOrder.id} Type: ${this.stopLossOrder.toPreview().type} Status: ${this.stopLossOrder.status}`);
+          console.log(`SL ORDER PLACED - ID: ${this.stopLossOrder.id}\
+           Type: ${this.stopLossOrder.toPreview().type} Status: ${this.stopLossOrder.status}`);
         });
       }
     });
@@ -90,7 +94,7 @@ module.exports.Position = class Position {
     const trailing = (this.doTrailing) ? 'ON' : 'OFF';
     const balanceDiff = ((this.pair.exchange.currentBalance - config.trading.startBalance) / config.trading.startBalance) * 100;
 
-    const strStartTime = `\`Started @ ${this.startTime.toString()}`;
+    const strStartTime = `\`Started @ ${this.startTime.toLocaleTimeString('de-DE')} on ${this.startTime.toLocaleDateString('de-DE')}`;
 
     const strPeriod = `\`Running for ${this.period.toString()}`;
 
@@ -129,7 +133,7 @@ module.exports.Position = class Position {
     this.profit -= config.trading.fee;
     this.pair.exchange.currentBalance *= 1 + (this.profit / 100);
     this.closingPrice = this.pair.currentPrice;
-    this.period = new Date() - this.startTime;
+    this.period = Date.now() - this.startTime;
     if (this.profit > 0) {
       this.pair.exchange.tradeCounterWin += 1;
     } else {
@@ -172,9 +176,6 @@ module.exports.Position = class Position {
    * Trailing of stop loss limit if profit increase
    */
   updateStopLoss() {
-    // const b = new Balance();
-    // const balance = await b.getBalance();
-    // console.log(`Position pl: ${balance.positions.pl}`);
     if (this.type === PositionType.LONG && this.pair.currentPrice >= this.takeProfitPrice && !this.profitTrailing) {
       this.stopLossPrice = this.pair.currentPrice * 0.9999;
       this.takeProfitBasePrice = this.pair.currentPrice * (1 + (this.stopLossPerc / 100));
