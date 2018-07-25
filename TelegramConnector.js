@@ -4,6 +4,7 @@ const { TradingPair } = require('./TradingPair.js');
 const Balance = require('./Balance');
 
 let bot;
+const startDate = new Date();
 
 module.exports = {
   sendToChat(msg) {
@@ -132,6 +133,13 @@ module.exports = {
         }
         default: break;
       }
+    });
+
+    bot.onText(/\/starttime/, () => {
+      bot.sendMessage(
+        config.telegram.chat,
+        `Running since ${startDate.toString()}`,
+      );
     });
 
     bot.on('polling_error', (error) => {

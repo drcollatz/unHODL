@@ -22,6 +22,9 @@ module.exports.Position = class Position {
     this.closingPrice = 0;
     this.takeProfitPerc = takeProfitPerc;
     this.stopLossPerc = stopLossPerc;
+    this.startTime = new Date();
+    this.period = new Date();
+    this.debounce = 0;
 
     if (this.type === PositionType.LONG) {
       this.takeProfitPrice = (this.orderPrice * (1 + (takeProfitPerc / 100)));
@@ -87,6 +90,10 @@ module.exports.Position = class Position {
     const trailing = (this.doTrailing) ? 'ON' : 'OFF';
     const balanceDiff = ((this.pair.exchange.currentBalance - config.trading.startBalance) / config.trading.startBalance) * 100;
 
+    const strStartTime = `\`Started @ ${this.startTime.toString()}`;
+
+    const strPeriod = `\`Running for ${this.period.toString()}`;
+
     const amount = `\`Amount   = ${(this.amount).toFixed(3)} ${this.pair}`;
     let strIndicator = '';
     this.pair.indicatorMap.forEach((candleKey, indicator) => {
@@ -122,6 +129,7 @@ module.exports.Position = class Position {
     this.profit -= config.trading.fee;
     this.pair.exchange.currentBalance *= 1 + (this.profit / 100);
     this.closingPrice = this.pair.currentPrice;
+    this.period = new Date() - this.startTime;
     if (this.profit > 0) {
       this.pair.exchange.tradeCounterWin += 1;
     } else {
@@ -163,7 +171,7 @@ module.exports.Position = class Position {
   /**
    * Trailing of stop loss limit if profit increase
    */
-  async updateStopLoss() {
+  updateStopLoss() {
     // const b = new Balance();
     // const balance = await b.getBalance();
     // console.log(`Position pl: ${balance.positions.pl}`);
@@ -180,13 +188,15 @@ module.exports.Position = class Position {
       if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
       console.log(`SL = TP and updated to ${this.stopLossPrice} CP: ${this.pair.currentPrice} TPB: ${this.takeProfitBasePrice}`);
     } else if (this.type === PositionType.LONG && this.pair.currentPrice <= this.takeProfitPrice && !this.profitTrailing) {
-      if (this.pair.indicators[Indicator.SAR] > this.stopLossPrice) {
+      this.debounce += 1;
+      if (this.pair.indicators[Indicator.SAR] > this.stopLossPrice && this.debounce > 2) {
         this.stopLossPrice = this.pair.indicators[Indicator.SAR];
         if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
         console.log(`SL = SAR and updated to ${this.stopLossPrice}`);
       }
     } else if (this.type === PositionType.SHORT && this.pair.currentPrice >= this.takeProfitPrice && !this.profitTrailing) {
-      if (this.pair.indicators[Indicator.SAR] < this.stopLossPrice) {
+      this.debounce += 1;
+      if (this.pair.indicators[Indicator.SAR] < this.stopLossPrice && this.debounce > 2) {
         this.stopLossPrice = this.pair.indicators[Indicator.SAR];
         if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
         console.log(`SL = SAR and updated to ${this.stopLossPrice}`);

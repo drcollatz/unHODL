@@ -21,9 +21,9 @@ module.exports.TradingPair = class TradingPair {
 
         this.currentRSI = this.indicators[Indicator.RSI];
         const interval = data.get('candleKey').slice(6, 7);
-        if (interval === '1') {
+       // if (interval === '1') {
           this.currentPrice = candles[0].close; // current candle (1m interval) close is more accurate then ticker
-        }
+       // }
         const strTime = `${time} - Candle interval: ${interval} of ${this.toString()},`;
         let strIndicator = '';
         this.indicatorMap.forEach((candleKey, indicator) => {
@@ -31,7 +31,7 @@ module.exports.TradingPair = class TradingPair {
         });
         const strPrice = ` @ ${this.currentPrice.toFixed(3)} USD`;
         console.log(strTime + strIndicator + strPrice);
-
+        // this.checkMarketSituation();
         this.tradeTriggers.forEach((tradeTrigger) => {
           if (tradeTrigger.checkTrigger()) {
             // console.log('Condition is true!');
@@ -45,7 +45,9 @@ module.exports.TradingPair = class TradingPair {
                 config.trading.stopLossPerc,
                 this.trailing,
               );
-              if (config.trading.enabled) this.activePosition.open();
+              if (config.trading.enabled) {
+                this.activePosition.open();
+              }
               const map = new Map();
               map.set('key', 'newPos');
               map.set('context', this);
