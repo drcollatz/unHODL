@@ -36,7 +36,7 @@ module.exports = {
             [{ text: 'Position', callback_data: '4' }],
             [{ text: 'Alive', callback_data: '5' }],
             [{ text: 'Help', callback_data: '6' }],
-            [{ text: '--- Placeholder ---', callback_data: '7' }],
+            [{ text: 'StartTime', callback_data: '7' }],
           ],
           selective: true,
         }),
@@ -95,6 +95,13 @@ module.exports = {
       bot.sendMessage(config.telegram.chat, 'close received - implementation pending');
     }
 
+    function getStartTime() {
+      bot.sendMessage(
+        config.telegram.chat,
+        `Running since ${startDate.toString()}`,
+      );
+    }
+
     bot.on('message', (msg) => {
       // Strip off possible @BotName in case the Bot is used in a group chat.
       const command = /\/[a-zA-Z]*/.exec(msg.text)[0];
@@ -131,15 +138,13 @@ module.exports = {
           getHelp();
           break;
         }
+
+        case ('/starttime'): {
+          getStartTime();
+          break;
+        }
         default: break;
       }
-    });
-
-    bot.onText(/\/starttime/, () => {
-      bot.sendMessage(
-        config.telegram.chat,
-        `Running since ${startDate.toString()}`,
-      );
     });
 
     bot.on('polling_error', (error) => {
@@ -162,6 +167,7 @@ module.exports = {
         case (4): getPos(); break;
         case (5): getAlive(); break;
         case (6): getHelp(); break;
+        case (7): getStartTime(); break;
         default: break;
       }
       bot.deleteMessage(opts.chat_id, opts.message_id);
