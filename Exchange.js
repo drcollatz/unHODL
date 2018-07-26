@@ -57,6 +57,10 @@ module.exports = class Exchange {
         });
       });
 
+      this.ws.onPositionSnapshot({ symbol: 'tEOSUSD' }, (pos) => {
+        console.log(pos);
+      });
+
       tradingPair.candleKeys.forEach((candleKey) => {
         this.ws.onCandle({ key: candleKey }, (candles) => {
           const map = new Map();
