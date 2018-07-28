@@ -17,15 +17,6 @@ module.exports = {
     });
     /* do some init stuff */
 
-    async function getBalance() {
-      const b = new Balance();
-      const balance = await b.getBalance();
-      bot.sendMessage(
-        config.telegram.chat,
-        `Available balance: ${(balance.balance).toFixed(2)} USD`,
-      );
-    }
-
     function showOptions() {
       const options = {
         reply_markup: JSON.stringify({
@@ -42,6 +33,15 @@ module.exports = {
         }),
       };
       bot.sendMessage(config.telegram.chat, 'chose option', options);
+    }
+
+    async function getBalance() {
+      const b = new Balance();
+      const balance = await b.getBalance();
+      bot.sendMessage(
+        config.telegram.chat,
+        `Available balance: ${(balance.balance).toFixed(2)} USD`,
+      );
     }
 
     async function getPosition() {

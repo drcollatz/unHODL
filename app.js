@@ -25,7 +25,7 @@ const currentdate = new Date();
 
 
 TelegramConnector.initBot();
-TelegramConnector.sendToChat(`*unHODL* Bot started on ${currentdate.toString()}... \u{1F911}`);
+TelegramConnector.sendToChat(`*unHODL* Bot started on ${currentdate.toLocaleDateString('de-DE')}... \u{1F911}`);
 
 
 /**
@@ -48,8 +48,8 @@ const exchange = new Exchange(config.bitfinex.key, config.bitfinex.secret, confi
 if (config.pairs.EOSUSD.enable) {
   const indicatorMap = new Map();
   // indicatorMap.set(Indicator.RSI, CANDLE_KEY_EOS_USD_1M);
-  // indicatorMap.set(Indicator.ADX, CANDLE_KEY_EOS_USD_1M);
-  indicatorMap.set(Indicator.SAR, CANDLE_KEY_EOS_USD_5M);
+  indicatorMap.set(Indicator.ADX, CANDLE_KEY_EOS_USD_1M);
+  indicatorMap.set(Indicator.SAR, CANDLE_KEY_EOS_USD_1M);
   const pairEosUsd =
     new TradingPair(exchange, indicatorMap, config.pairs.EOSUSD.trailing);
 

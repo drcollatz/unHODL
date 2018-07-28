@@ -21,19 +21,19 @@ module.exports.Position = class Position {
     this.orderPrice = orderPrice;
     this.closingPrice = 0;
     this.takeProfitPerc = takeProfitPerc;
-    this.stopLossPerc = stopLossPerc;
+    this.stopLossPerc = stopLossPerc * 3;
     this.startTime = new Date();
     this.period = new Date();
     this.debounce = 0;
 
     if (this.type === PositionType.LONG) {
-      this.takeProfitPrice = (this.orderPrice * (1 + (takeProfitPerc / 100)));
+      this.takeProfitPrice = (this.orderPrice * (1 + (this.takeProfitPerc / 100)));
       this.takeProfitBasePrice = this.takeProfitPrice;
-      this.stopLossPrice = (this.orderPrice * (1 - (stopLossPerc / 100)));
+      this.stopLossPrice = (this.orderPrice * (1 - (this.stopLossPerc / 100)));
     } else if (this.type === PositionType.SHORT) {
-      this.takeProfitPrice = (this.orderPrice * (1 - (takeProfitPerc / 100)));
+      this.takeProfitPrice = (this.orderPrice * (1 - (this.takeProfitPerc / 100)));
       this.takeProfitBasePrice = this.takeProfitPrice;
-      this.stopLossPrice = (this.orderPrice * (1 + (stopLossPerc / 100)));
+      this.stopLossPrice = (this.orderPrice * (1 + (this.stopLossPerc / 100)));
     }
 
     this.doTrailing = doTrailing;
@@ -190,6 +190,7 @@ module.exports.Position = class Position {
       console.log(`SL = TP and updated to ${this.stopLossPrice} CP: ${this.pair.currentPrice} TPB: ${this.takeProfitBasePrice}`);
     } else if (this.type === PositionType.LONG && this.pair.currentPrice <= this.takeProfitPrice && !this.profitTrailing) {
       this.debounce += 1;
+      console.log(`Debounce: ${this.debounce}`);
       if (this.pair.indicators[Indicator.SAR] > this.stopLossPrice && this.debounce > 2) {
         this.stopLossPrice = this.pair.indicators[Indicator.SAR];
         if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
@@ -197,6 +198,7 @@ module.exports.Position = class Position {
       }
     } else if (this.type === PositionType.SHORT && this.pair.currentPrice >= this.takeProfitPrice && !this.profitTrailing) {
       this.debounce += 1;
+      console.log(`Debounce: ${this.debounce}`);
       if (this.pair.indicators[Indicator.SAR] < this.stopLossPrice && this.debounce > 2) {
         this.stopLossPrice = this.pair.indicators[Indicator.SAR];
         if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
