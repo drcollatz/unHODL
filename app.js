@@ -49,7 +49,7 @@ if (config.pairs.EOSUSD.enable) {
   const indicatorMap = new Map();
   // indicatorMap.set(Indicator.RSI, CANDLE_KEY_EOS_USD_1M);
   indicatorMap.set(Indicator.ADX, CANDLE_KEY_EOS_USD_1M);
-  indicatorMap.set(Indicator.SAR, CANDLE_KEY_EOS_USD_1M);
+  indicatorMap.set(Indicator.SAR, CANDLE_KEY_EOS_USD_5M);
   const pairEosUsd =
     new TradingPair(exchange, indicatorMap, config.pairs.EOSUSD.trailing);
 
