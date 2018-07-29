@@ -1,6 +1,7 @@
 const config = require('./conf/config');
 const { Indicator } = require('./Indicator');
 const { Order } = require('./node_modules/bitfinex-api-node/lib/models');
+const TelegramConnector = require('./TelegramConnector.js');
 // const Balance = require('./Balance');
 
 const PositionType = {
@@ -94,9 +95,8 @@ module.exports.Position = class Position {
     const trailing = (this.doTrailing) ? 'ON' : 'OFF';
     const balanceDiff = ((this.pair.exchange.currentBalance - config.trading.startBalance) / config.trading.startBalance) * 100;
 
-    const strStartTime = `\`Started @ ${this.startTime.toLocaleTimeString('de-DE')} on ${this.startTime.toLocaleDateString('de-DE')}`;
-
-    const strPeriod = `\`Running for ${this.period.toString()}`;
+    this.period = new Date() - this.startTime;
+    const duration = `\nDuration = ${Math.floor(this.period / 1000 / 60)} min`;
 
     const amount = `\`Amount   = ${(this.amount).toFixed(3)} ${this.pair}`;
     let strIndicator = '';
@@ -110,8 +110,9 @@ module.exports.Position = class Position {
                    \nBalance  = ${(this.pair.exchange.currentBalance).toFixed(2)} USD (${balanceDiff.toFixed(2)} %) \
                    \nTrades   = ${this.pair.exchange.tradeCounterWin} \u{1F44D} / ${this.pair.exchange.tradeCounterLost} \u{1F44E}\``;
 
+
     const close = `${posType} \u{1F534} @ ${this.closingPrice.toFixed(3)} USD (${(this.profit).toFixed(2)} %) ${closeResult}\
-                   \n\`----------------------\`\n${amount}${strIndicator}${stats}`;
+                   \n\`----------------------\`\n${amount}${strIndicator}${duration}${stats}`;
 
     const open = `${posType} \u{1F195} @ ${this.orderPrice.toFixed(3)} USD \
                    \n\`----------------------\`\n${amount}${strIndicator}${stats}`;
@@ -176,6 +177,8 @@ module.exports.Position = class Position {
    * Trailing of stop loss limit if profit increase
    */
   updateStopLoss() {
+    this.period = new Date() - this.startTime;
+    console.log(`Duration: ${Math.floor(this.period / 1000 / 60)} min`);
     if (this.type === PositionType.LONG && this.pair.currentPrice >= this.takeProfitPrice && !this.profitTrailing) {
       this.stopLossPrice = this.pair.currentPrice * 0.9999;
       this.takeProfitBasePrice = this.pair.currentPrice * (1 + (this.stopLossPerc / 100));
@@ -195,6 +198,7 @@ module.exports.Position = class Position {
         this.stopLossPrice = this.pair.indicators[Indicator.SAR];
         if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
         console.log(`SL = SAR and updated to ${this.stopLossPrice}`);
+        TelegramConnector.sendToChat(`SL = SAR = ${this.stopLossPrice.toFixed(3)} (CP: ${this.pair.currentPrice.toFixed(3)}) (${PositionType})`);
       }
     } else if (this.type === PositionType.SHORT && this.pair.currentPrice >= this.takeProfitPrice && !this.profitTrailing) {
       this.debounce += 1;
@@ -203,6 +207,7 @@ module.exports.Position = class Position {
         this.stopLossPrice = this.pair.indicators[Indicator.SAR];
         if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
         console.log(`SL = SAR and updated to ${this.stopLossPrice}`);
+        TelegramConnector.sendToChat(`SL = SAR = ${this.stopLossPrice.toFixed(3)} (CP: ${this.pair.currentPrice.toFixed(3)}) (${PositionType})`);
       }
     }
     if (this.type === PositionType.LONG && this.pair.currentPrice >= this.takeProfitBasePrice && this.profitTrailing) {
