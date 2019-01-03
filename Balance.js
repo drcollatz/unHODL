@@ -1,5 +1,7 @@
 const config = require('./conf/config');
+const logger = require('./node_modules/js-logger');
 const BFX = require('bitfinex-api-node');
+
 
 module.exports = class Balance {
   constructor() {
@@ -32,7 +34,7 @@ module.exports = class Balance {
     const wallets = await this.rest.wallets();
     wallets.forEach((w) => {
       if (w.type === 'margin' && w.currency === 'USD') {
-        console.log(`${new Date().toLocaleTimeString()} - Margin wallet balance: ${w.balance}`);
+        logger.info(`${new Date().toLocaleTimeString()} - Margin wallet balance: ${w.balance}`);
         this.wallets.balance = w.balance;
       }
     });

@@ -9,7 +9,7 @@ module.exports.sarCalculation = (candles) => {
     high: candles.map(x => x.high).reverse(),
     low: candles.map(x => x.low).reverse(),
     step: 0.02,
-    max: 0.02,
+    max: 0.2,
   };
 
   const resultArray = PSAR.calculate(input);

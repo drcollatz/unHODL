@@ -7,6 +7,12 @@ const Indicator = {
   ADX: 1,
   SAR: 2,
   MAXINDICATOR: 3,
+  CANDLE_KEY_EOS_USD_1M: 'trade:1m:tEOSUSD',
+  CANDLE_KEY_EOS_USD_5M: 'trade:5m:tEOSUSD',
+  CANDLE_KEY_BTC_USD_1M: 'trade:1m:tBTCUSD',
+  CANDLE_KEY_BTC_USD_5M: 'trade:5m:tBTCUSD',
+  CANDLE_KEY_ETH_USD_1M: 'trade:1m:tETHUSD',
+  CANDLE_KEY_ETH_USD_5M: 'trade:5m:tETHUSD',
 
   toString(indicator) {
     let str = '';

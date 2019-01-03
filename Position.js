@@ -1,8 +1,7 @@
 const config = require('./conf/config');
+const logger = require('./node_modules/js-logger');
 const { Indicator } = require('./Indicator');
-const { Order } = require('./node_modules/bitfinex-api-node/lib/models');
-const TelegramConnector = require('./TelegramConnector.js');
-// const Balance = require('./Balance');
+const { Order } = require('./node_modules/bfx-api-node-models/lib');
 
 const PositionType = {
   LONG: 0,
@@ -22,7 +21,7 @@ module.exports.Position = class Position {
     this.orderPrice = orderPrice;
     this.closingPrice = 0;
     this.takeProfitPerc = takeProfitPerc;
-    this.stopLossPerc = stopLossPerc * 3;
+    this.stopLossPerc = stopLossPerc;
     this.startTime = new Date();
     this.period = new Date();
     this.debounce = 0;
@@ -46,14 +45,14 @@ module.exports.Position = class Position {
     this.openPosOrder = new Order({
       cid: Date.now(),
       symbol: 'tEOSUSD',
-      amount: (this.type === PositionType.LONG) ? 2 : -2,
+      amount: (this.type === PositionType.LONG) ? amount : -amount,
       type: Order.type.MARKET,
     }, pair.exchange.ws);
 
     this.stopLossOrder = new Order({
       cid: Date.now() + 1,
       symbol: 'tEOSUSD',
-      amount: (this.type === PositionType.LONG) ? -2 : 2,
+      amount: (this.type === PositionType.LONG) ? -amount : amount,
       price: this.stopLossPrice,
       type: Order.type.STOP,
     }, pair.exchange.ws);
@@ -63,27 +62,36 @@ module.exports.Position = class Position {
     this.stopLossOrder.registerListeners();
 
     this.openPosOrder.on('update', () => {
-      console.log(`OPEN POSITION ORDER UPDATE - ID: ${this.openPosOrder.id}\
-       Type: ${this.openPosOrder.toPreview().type} Status: ${this.openPosOrder.status}`);
+      const time = new Date().toLocaleTimeString();
+      logger.debug(`${time} - OPEN POSITION ORDER UPDATE - ID: ${this.openPosOrder.id} \
+Type: ${this.openPosOrder.toPreview().type} Status: ${this.openPosOrder.status}`);
     });
 
     this.stopLossOrder.on('update', () => {
-      console.log(`SL ORDER UPDATE - ID: ${this.stopLossOrder.id}\
-       Type: ${this.stopLossOrder.toPreview().type} Status: ${this.stopLossOrder.status}`);
+      const time = new Date().toLocaleTimeString();
+      logger.debug(`${time} - SL ORDER UPDATE - ID: ${this.stopLossOrder.id} \
+Type: ${this.stopLossOrder.toPreview().type} Status: ${this.stopLossOrder.status} Price: ${this.stopLossOrder.price}`);
+    });
+
+    this.stopLossOrder.on('close', () => {
+      const time = new Date().toLocaleTimeString();
+      logger.info(`${time} - SL ORDER IS CLOSED`);
+      this.close();
+      this.pair.onPositionClosed(this);
     });
 
     // Open Position Executed -> Set Stop Loss
     this.openPosOrder.on('close', () => {
-      console.log(`OPEN POSITION ORDER CLOSED - ID: ${this.openPosOrder.id}\
-       Type: ${this.openPosOrder.toPreview().type} Status: ${this.openPosOrder.status}`);
+      const time = new Date().toLocaleTimeString();
+      logger.info(`${time} - OPEN POSITION ORDER CLOSED - ID: ${this.openPosOrder.id} Type: ${this.openPosOrder.toPreview().type} Status: ${this.openPosOrder.status}`);
       if (this.openPosOrder.status !== 'CANCELED') {
-        console.log(`OPEN POSITION ORDER AVG PRICE: ${this.openPosOrder.priceAvg}`);
+        logger.debug(`${time} - OPEN POSITION ORDER AVG PRICE: ${this.openPosOrder.priceAvg}`);
         // set Take Profit Price according to open position average price
         this.takeProfitPrice = this.openPosOrder.priceAvg * ((this.type === PositionType.LONG) ? (1 + (this.takeProfitPerc / 100)) : (1 - (this.takeProfitPerc / 100)));
-        console.log(`TAKE PROFIT PRICE: ${this.takeProfitPrice}`);
+        logger.debug(`${time} - TAKE PROFIT PRICE: ${this.takeProfitPrice}`);
         this.stopLossOrder.submit().then(() => {
-          console.log(`SL ORDER PLACED - ID: ${this.stopLossOrder.id}\
-           Type: ${this.stopLossOrder.toPreview().type} Status: ${this.stopLossOrder.status}`);
+          logger.info(`${time} - SL ORDER PLACED - ID: ${this.stopLossOrder.id} Type: ${this.stopLossOrder.toPreview().type} Status: ${this.stopLossOrder.status}`);
+          this.stopLossOrder.update(); // need to update since SHORT is indicating status == null !?
         });
       }
     });
@@ -93,7 +101,7 @@ module.exports.Position = class Position {
     const posType = this.type === PositionType.SHORT ? '\u{1F4C9}' : '\u{1F4C8}';
     const closeResult = (this.profit > 0) ? '\u{1F44D}' : '\u{1F44E}';
     const trailing = (this.doTrailing) ? 'ON' : 'OFF';
-    const balanceDiff = ((this.pair.exchange.currentBalance - config.trading.startBalance) / config.trading.startBalance) * 100;
+    const balanceDiff = ((this.pair.exchange.currentBalance - this.pair.exchange.startBalance) / this.pair.exchange.startBalance) * 100;
 
     this.period = new Date() - this.startTime;
     const duration = `\nDuration = ${Math.floor(this.period / 1000 / 60)} min`;
@@ -108,6 +116,7 @@ module.exports.Position = class Position {
                    \nSL       = ${(this.stopLossPrice).toFixed(3)} USD (${config.trading.stopLossPerc}%)\
                    \nTrailing = ${trailing}\
                    \nBalance  = ${(this.pair.exchange.currentBalance).toFixed(2)} USD (${balanceDiff.toFixed(2)} %) \
+                   \nFee      = ${((this.pair.exchange.currentBalance * config.trading.margin) * 0.002).toFixed(4)} USD \
                    \nTrades   = ${this.pair.exchange.tradeCounterWin} \u{1F44D} / ${this.pair.exchange.tradeCounterLost} \u{1F44E}\``;
 
 
@@ -121,7 +130,8 @@ module.exports.Position = class Position {
 
   open() {
     this.openPosOrder.submit().then(() => {
-      console.log(`submitted order ${this.openPosOrder.id}`);
+      const time = new Date().toLocaleTimeString();
+      logger.info(`${time} - OPEN ORDER SUBMITTED - ID: ${this.openPosOrder.id}`);
     });
   }
 
@@ -177,66 +187,119 @@ module.exports.Position = class Position {
    * Trailing of stop loss limit if profit increase
    */
   updateStopLoss() {
+/*     logger.debug(`Type: ${this.type}\
+    \nCurrent Price: ${this.pair.currentPrice}\
+    \nTake Profit Price: ${this.takeProfitPrice}\
+    \nTake Profit Base Price: ${this.takeProfitBasePrice}\
+    \nStopp Loss Price: ${this.stopLossPrice}\
+    \nStopp Loss Order ID: ${this.stopLossOrder.id}\
+    \nStopp Loss Order Status: ${this.stopLossOrder.status}\
+    \nStopp Loss Order Price: ${this.stopLossOrder.price}\
+    \nTrailing: ${this.profitTrailing}`); */
     this.period = new Date() - this.startTime;
-    console.log(`Duration: ${Math.floor(this.period / 1000 / 60)} min`);
-    if (this.type === PositionType.LONG && this.pair.currentPrice >= this.takeProfitPrice && !this.profitTrailing) {
-      this.stopLossPrice = this.pair.currentPrice * 0.9999;
-      this.takeProfitBasePrice = this.pair.currentPrice * (1 + (this.stopLossPerc / 100));
-      this.profitTrailing = true;
-      if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
-      console.log(`SL = TP and updated to ${this.stopLossPrice} CP: ${this.pair.currentPrice} TPB: ${this.takeProfitBasePrice}`);
-    } else if (this.type === PositionType.SHORT && this.pair.currentPrice <= this.takeProfitPrice && !this.profitTrailing) {
-      this.stopLossPrice = this.pair.currentPrice * 1.0001;
-      this.takeProfitBasePrice = this.pair.currentPrice * (1 - (this.stopLossPerc / 100));
-      this.profitTrailing = true;
-      if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
-      console.log(`SL = TP and updated to ${this.stopLossPrice} CP: ${this.pair.currentPrice} TPB: ${this.takeProfitBasePrice}`);
-    } else if (this.type === PositionType.LONG && this.pair.currentPrice <= this.takeProfitPrice && !this.profitTrailing) {
-      this.debounce += 1;
-      console.log(`Debounce: ${this.debounce}`);
-      if (this.pair.indicators[Indicator.SAR] > this.stopLossPrice && this.debounce > 2) {
-        this.stopLossPrice = this.pair.indicators[Indicator.SAR];
-        if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
-        console.log(`SL = SAR and updated to ${this.stopLossPrice}`);
-        TelegramConnector.sendToChat(`SL = SAR = ${this.stopLossPrice.toFixed(3)} (CP: ${this.pair.currentPrice.toFixed(3)}) (${PositionType})`);
-      }
-    } else if (this.type === PositionType.SHORT && this.pair.currentPrice >= this.takeProfitPrice && !this.profitTrailing) {
-      this.debounce += 1;
-      console.log(`Debounce: ${this.debounce}`);
-      if (this.pair.indicators[Indicator.SAR] < this.stopLossPrice && this.debounce > 2) {
-        this.stopLossPrice = this.pair.indicators[Indicator.SAR];
-        if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
-        console.log(`SL = SAR and updated to ${this.stopLossPrice}`);
-        TelegramConnector.sendToChat(`SL = SAR = ${this.stopLossPrice.toFixed(3)} (CP: ${this.pair.currentPrice.toFixed(3)}) (${PositionType})`);
+    const time = new Date().toLocaleTimeString();
+    // logger.debug(`Duration: ${Math.floor(this.period / 1000 / 60)} min`);
+    // LONG: Price first time at/over take profit -> set SL Order on current price & set next goal (takeProfitBasePrice) for price & trailing ON
+    if (!this.profitTrailing) {
+      logger.debug(`${time} - Trailing NOT active...`);
+      if (this.type === PositionType.LONG) {
+        logger.debug(`${time} - LONG Position...`);
+        logger.debug(`${time} - PL: ${this.pair.exchange.currentPL} (${this.pair.exchange.currentPL_Perc} %)`);
+        if (this.pair.exchange.currentPL_Perc > 0.15) { // (this.pair.currentPrice > this.takeProfitPrice) {
+          logger.debug(`${time} - TP (${this.takeProfitPrice.toFixed(3)}) price REACHED... (try to save profits, enabling trailing)`);
+          this.stopLossPrice = this.pair.currentPrice * 0.9999;
+          this.takeProfitBasePrice = this.pair.currentPrice * (1 + (this.stopLossPerc / 100));
+          this.profitTrailing = true;
+          if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) {
+            logger.debug(`${time} - Trading is ENABLED: Adjusting SL order on exchange...`);
+            this.stopLossOrder.update({ price: this.stopLossPrice });
+            logger.info(`${time} - CP (${this.pair.currentPrice.toFixed(3)}) reached TP (${this.takeProfitPrice.toFixed(3)}) -> Update SL to ${this.stopLossPrice.toFixed(3)}, next goal at TPB: ${this.takeProfitBasePrice.toFixed(3)}`);
+          }
+        } else if (this.pair.currentPrice <= this.takeProfitPrice) {
+          logger.debug(`${time} - PL: ${this.pair.exchange.currentPL} (${this.pair.exchange.currentPL_Perc} %)`);
+          logger.debug(`${time} - TP (${this.takeProfitPrice.toFixed(3)}) not reached yet... (try to set SL (${this.stopLossPrice.toFixed(3)}) to SAR (${this.pair.indicators[Indicator.SAR].toFixed(3)}) in order to minimize risk)`);
+          this.debounce += 1;
+          if (this.debounce > 4) {
+            if (this.pair.indicators[Indicator.SAR] > this.stopLossPrice) {
+              logger.debug(`${time} - SAR (${this.pair.indicators[Indicator.SAR].toFixed(3)}) reaches SL (${this.stopLossPrice.toFixed(3)})... (set SL price to SAR)`);
+              this.stopLossPrice = this.pair.indicators[Indicator.SAR];
+              if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) {
+                logger.debug(`${time} - Trading is ENABLED: Adjusting SL order on exchange...`);
+                this.stopLossOrder.update({ price: this.stopLossPrice });
+                logger.info(`${time} - SL = SAR = ${this.stopLossPrice.toFixed(3)} (CP: ${this.pair.currentPrice.toFixed(3)}) (${this.type})`);
+              }
+            } else logger.debug(`${time} - SAR (${this.pair.indicators[Indicator.SAR].toFixed(3)}) to far away from SL (${this.stopLossPrice.toFixed(3)})... (wait for SAR to come closer)`);
+          } else logger.debug(`${time} - Still debouncing... (${this.debounce})`);
+        }
+      } else if (this.type === PositionType.SHORT) {
+        logger.debug(`${time} - SHORT Position...`);
+        if (this.pair.currentPrice <= this.takeProfitPrice) {
+          logger.debug(`${time} - TP (${this.takeProfitPrice.toFixed(3)}) price REACHED... (try to save profits, enabling trailing)`);
+          this.stopLossPrice = this.pair.currentPrice * 1.0001;
+          this.takeProfitBasePrice = this.pair.currentPrice * (1 - (this.stopLossPerc / 100));
+          this.profitTrailing = true;
+          if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) {
+            logger.debug(`${time} - Trading is ENABLED: Adjusting SL order on exchange...`);
+            this.stopLossOrder.update({ price: this.stopLossPrice });
+            logger.info(`${time} - CP (${this.pair.currentPrice.toFixed(3)}) reached TP (${this.takeProfitPrice.toFixed(3)}) -> Update SL to ${this.stopLossPrice.toFixed(3)}, next goal at TPB: ${this.takeProfitBasePrice.toFixed(3)}`);
+          }
+        } else if (this.pair.currentPrice >= this.takeProfitPrice) {
+          logger.debug(`${time} - PL: ${this.pair.exchange.currentPL} (${this.pair.exchange.currentPL_Perc} %)`);
+          logger.debug(`${time} - TP (${this.takeProfitPrice.toFixed(3)}) not reached yet... (try to set SL (${this.stopLossPrice.toFixed(3)}) to SAR (${this.pair.indicators[Indicator.SAR].toFixed(3)}) in order to minimize risk)`);
+          this.debounce += 1;
+          if (this.debounce > 4) {
+            if (this.pair.indicators[Indicator.SAR] < this.stopLossPrice) {
+              logger.debug(`${time} - SAR reaches SL price... (set SL price to SAR)`);
+              this.stopLossPrice = this.pair.indicators[Indicator.SAR];
+              if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) {
+                logger.debug(`${time} - Trading is ENABLED: Adjusting SL order on exchange...`);
+                this.stopLossOrder.update({ price: this.stopLossPrice });
+                logger.info(`${time} - SL = SAR = ${this.stopLossPrice.toFixed(3)} (CP: ${this.pair.currentPrice.toFixed(3)}) (${this.type})`); 
+              }
+            } else logger.debug(`${time} - SAR (${this.pair.indicators[Indicator.SAR].toFixed(3)}) to far away from SL (${this.stopLossPrice.toFixed(3)})... (wait for SAR to come closer)`);
+          } else logger.debug(`${time} - Still debouncing... (${this.debounce})`);
+        }
       }
     }
-    if (this.type === PositionType.LONG && this.pair.currentPrice >= this.takeProfitBasePrice && this.profitTrailing) {
-      this.stopLossPrice = (this.pair.currentPrice * (1 - (this.stopLossPerc / 100)));
-      this.takeProfitBasePrice = this.pair.currentPrice;
-      if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
-      console.log(`Stop Loss updated to: ${(this.stopLossPrice).toFixed(3)}`);
-    } else if (this.type === PositionType.SHORT && this.pair.currentPrice <= this.takeProfitBasePrice && this.profitTrailing) {
-      this.stopLossPrice = (this.pair.currentPrice * (1 + (this.stopLossPerc / 100)));
-      this.takeProfitBasePrice = this.pair.currentPrice;
-      if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) this.stopLossOrder.update({ price: this.stopLossPrice });
-      console.log(`Stop Loss updated to: ${(this.stopLossPrice).toFixed(3)}`);
+    if (this.profitTrailing) {
+      logger.debug(`${time} - Trailing active...`); // Todo: Aufteilen um zu wissen was trailing gerade macht...
+      if (this.type === PositionType.LONG && this.pair.currentPrice >= this.takeProfitBasePrice) {
+        logger.debug(`${time} - (price above TP) and reach TPB -> Adapt SL`);
+        this.stopLossPrice = (this.pair.currentPrice * (1 - (this.stopLossPerc / 100)));
+        this.takeProfitBasePrice = this.pair.currentPrice;
+        if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) {
+          logger.debug(`${time} - Trading is ENABLED: Adjusting SL order on exchange...`);
+          this.stopLossOrder.update({ price: this.stopLossPrice });
+          logger.info(`${time} - Stop Loss updated to: ${(this.stopLossPrice).toFixed(3)}`);
+        }
+      } else if (this.type === PositionType.SHORT && this.pair.currentPrice <= this.takeProfitBasePrice) {
+        logger.debug(`${time} - (price under TP) and reach TPB -> Adapt SL`);
+        this.stopLossPrice = (this.pair.currentPrice * (1 + (this.stopLossPerc / 100)));
+        this.takeProfitBasePrice = this.pair.currentPrice;
+        if (this.stopLossOrder.status === 'ACTIVE' && config.trading.enabled) {
+          logger.debug(`${time} - Trading is ENABLED: Adjusting SL order on exchange...`);
+          this.stopLossOrder.update({ price: this.stopLossPrice });
+          logger.info(`${time} - Stop Loss updated to: ${(this.stopLossPrice).toFixed(3)}`);
+        }
+      }
     }
   }
-
   /**
    * Trailing of take profit limit increase
+   * Idee: Beim Training immer auf den Open Wert von der Vorgänger Candle setzen (schöne Treppe)
    */
   updateTakeProfit() {
+    const time = new Date().toLocaleTimeString();
     if (this.type === PositionType.LONG && this.pair.currentPrice > this.takeProfitBasePrice) {
       this.takeProfitPrice = (this.pair.currentPrice *
         (1 + (this.takeProfitPerc / 100)));
       this.takeProfitBasePrice = this.pair.currentPrice;
-      console.log(`Take profit updated to: ${this.takeProfitPrice.toFixed(3)}`);
+      logger.info(`${time} - Take profit updated to: ${this.takeProfitPrice.toFixed(3)}`);
     } else if (this.type === PositionType.SHORT && this.pair.currentPrice < this.takeProfitBasePrice) {
       this.takeProfitPrice = (this.pair.currentPrice *
         (1 - (this.takeProfitPerc / 100)));
       this.takeProfitBasePrice = this.pair.currentPrice;
-      console.log(`Take profit updated to: ${this.takeProfitPrice.toFixed(3)}`);
+      logger.info(`${time} - Take profit updated to: ${this.takeProfitPrice.toFixed(3)}`);
     }
   }
 };

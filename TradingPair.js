@@ -1,4 +1,5 @@
 const config = require('./conf/config');
+const logger = require('./node_modules/js-logger');
 const { Position } = require('./Position');
 const { Indicator } = require('./Indicator');
 
@@ -9,7 +10,6 @@ module.exports.TradingPair = class TradingPair {
  * @param {*} data
  */
   observerCallback(data) {
-    const time = new Date().toLocaleTimeString();
     if (data.get('key') === 'candleUpdate') {
       const candles = data.get('candles');
       if (candles != null) {
@@ -18,23 +18,24 @@ module.exports.TradingPair = class TradingPair {
             this.indicators[indicator] = Indicator.calc(indicator, candles);
           }
         });
-
         this.currentRSI = this.indicators[Indicator.RSI];
         const interval = data.get('candleKey').slice(6, 7);
+        let diffPrice;
         if (interval === '1') {
           this.currentPrice = candles[0].close; // current candle (1m interval) close is more accurate then ticker
         }
+        const time = new Date().toLocaleTimeString();
         const strTime = `${time} - Candle interval: ${interval} of ${this.toString()},`;
         let strIndicator = '';
         this.indicatorMap.forEach((candleKey, indicator) => {
           strIndicator += ` | ${Indicator.toString(indicator)}: ${this.indicators[indicator].toFixed(3)}`;
+          diffPrice = (this.indicators[indicator] > this.currentPrice) ? `${(this.indicators[indicator] - this.currentPrice).toFixed(3)} (SHORT TREND)` : `${(this.currentPrice - this.indicators[indicator]).toFixed(3)} (LONG TREND)`;
         });
         const strPrice = ` @ ${this.currentPrice.toFixed(3)} USD`;
-        console.log(strTime + strIndicator + strPrice);
-        // this.checkMarketSituation();
+        logger.info(`${strTime + strIndicator + strPrice} | Diff: ${diffPrice}`);
         this.tradeTriggers.forEach((tradeTrigger) => {
           if (tradeTrigger.checkTrigger()) {
-            // console.log('Condition is true!');
+            logger.debug('Condition is true!');
             if (this.activePosition == null && this.currentPrice !== 0) {
               this.activePosition = new Position(
                 this,
@@ -105,7 +106,7 @@ module.exports.TradingPair = class TradingPair {
       this.exchange.registerTradingPair(this, this.observerCallback.bind(this));
       TradingPair.activePairs.push(this);
     } else {
-      throw Promise.reject(new Error('No Exchange object was prodived!'));
+      throw Promise.reject(new Error('No Exchange object was provided!'));
     }
   }
 
@@ -181,10 +182,10 @@ module.exports.TradingPair = class TradingPair {
     const positions = await this.rest.positions();
 
     if (positions.length === 0) {
-      return console.log('no open positions');
+      return logger.info('no open positions');
     }
-    console.log(`${new Date().toLocaleTimeString()} - Pos Amount: ${positions[0].amount}`);
-    console.log(`${new Date().toLocaleTimeString()} - Pos P/L: ${positions[0].pl.toFixed(2)} (${positions[0].plPerc.toFixed(2)}%)`);
+    logger.info(`${new Date().toLocaleTimeString()} - Pos Amount: ${positions[0].amount}`);
+    logger.info(`${new Date().toLocaleTimeString()} - Pos P/L: ${positions[0].pl.toFixed(2)} (${positions[0].plPerc.toFixed(2)}%)`);
     this.amount = positions[0].amount;
     this.pl = positions[0].pl.toFixed(2);
     this.plPerc = positions[0].plPerc.toFixed(2);

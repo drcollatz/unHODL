@@ -1,5 +1,8 @@
+process.env.NTBA_FIX_319 = 1; // needed for telegram issue
+
 const TelegramBot = require('node-telegram-bot-api');
 const config = require('./conf/config.js');
+const logger = require('./node_modules/js-logger');
 const { TradingPair } = require('./TradingPair.js');
 const Balance = require('./Balance');
 
@@ -16,6 +19,8 @@ module.exports = {
       polling: true,
     });
     /* do some init stuff */
+
+    this.sendToChat(`*unHODL* Bot started on ${startDate.toLocaleDateString('de-DE')}... \u{1F911}`);
 
     function showOptions() {
       const options = {
@@ -148,7 +153,7 @@ module.exports = {
     });
 
     bot.on('polling_error', (error) => {
-      console.log(`Telegram Error - ${error.message}`);
+      logger.error(`Telegram Error - ${error.message}`);
       bot.openWebHook();
       bot.sendMessage(config.telegram.chat, `Error: ${error.message}`);
     });
